@@ -1,0 +1,44 @@
+{% set version = environ['sparsembar_VERSION'][1:] %}
+
+package:
+  name: sparsembar
+  version: {{ version }}
+
+source:
+  git_url: ../../../
+
+build:
+  noarch: python
+  number: 0
+  script: python -m pip install --no-deps --ignore-installed .
+
+requirements:
+  host:
+    - python
+    - setuptools
+    - versioningit
+    - pip
+  run:
+    - python
+    - importlib-resources  # [py<310]
+    - typing_extensions  # [py<311]
+    - numpy
+    - openmm>=7.6
+    - pyyaml
+
+test:
+  imports:
+    - sparsembar
+
+about:
+  home: https://github.com/craabreu/sparsembar
+  summary: A Sparse-Matrix Variant of MBAR
+  license: MIT
+  license_family: MIT
+  license_file: LICENSE
+  doc_url: https://sparsembar.readthedocs.io/en/stable
+  dev_url: https://github.com/craabreu/sparsembar
+
+extra:
+  recipe-maintainers:
+    - craabreu
