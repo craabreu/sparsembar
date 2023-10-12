@@ -52,7 +52,7 @@ with open("api/index.rst", "w") as f:
 
 # -- Project information -----------------------------------------------------
 
-project = "sparsembar"
+project = "Sparse MBAR"
 copyright = "2023, Charlles Abreu | CMS Cookiecutter v1.1"
 author = "Charlles Abreu"
 version = ""
