@@ -4,7 +4,6 @@ Sparse MBAR
 [//]: # (Badges)
 [![GitHub Actions Build Status](https://github.com/craabreu/sparsembar/workflows/Linux/badge.svg)](https://github.com/craabreu/sparsembar/actions?query=workflow%3ALinux)
 [![GitHub Actions Build Status](https://github.com/craabreu/sparsembar/workflows/MacOS/badge.svg)](https://github.com/craabreu/sparsembar/actions?query=workflow%3AMacOS)
-[![GitHub Actions Build Status](https://github.com/craabreu/sparsembar/workflows/Windows/badge.svg)](https://github.com/craabreu/sparsembar/actions?query=workflow%3AWindows)
 [![GitHub Actions Build Status](https://github.com/craabreu/sparsembar/workflows/Linter/badge.svg)](https://github.com/craabreu/sparsembar/actions?query=workflow%3ALinter)
 [![Documentation Status](https://github.com/craabreu/sparsembar/workflows/Docs/badge.svg)](https://github.com/craabreu/sparsembar/actions?query=workflow%3ADocs)
 [![Coverage Report](https://craabreu.github.io/sparsembar/coverage/coverage.svg)](https://craabreu.github.io/sparsembar/coverage)
