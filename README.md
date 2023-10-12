@@ -5,7 +5,7 @@ Sparse MBAR
 [![GitHub Actions Build Status](https://github.com/craabreu/sparsembar/workflows/Linux/badge.svg)](https://github.com/craabreu/sparsembar/actions?query=workflow%3ALinux)
 [![GitHub Actions Build Status](https://github.com/craabreu/sparsembar/workflows/MacOS/badge.svg)](https://github.com/craabreu/sparsembar/actions?query=workflow%3AMacOS)
 [![GitHub Actions Build Status](https://github.com/craabreu/sparsembar/workflows/Linter/badge.svg)](https://github.com/craabreu/sparsembar/actions?query=workflow%3ALinter)
-[![Documentation Status](https://github.com/craabreu/sparsembar/workflows/Docs/badge.svg)](https://github.com/craabreu/sparsembar/actions?query=workflow%3ADocs)
+[![Documentation Status](https://github.com/craabreu/sparsembar/workflows/Doc/badge.svg)](https://github.com/craabreu/sparsembar/actions?query=workflow%3ADoc)
 [![Coverage Report](https://craabreu.github.io/sparsembar/coverage/coverage.svg)](https://craabreu.github.io/sparsembar/coverage)
 
 [![Conda SparseMBAR version](https://img.shields.io/conda/v/craabreu/sparsembar.svg)](https://anaconda.org/craabreu/sparsembar)
