@@ -1,0 +1,10 @@
+Python API
+==========
+
+.. toctree::
+    :titlesonly:
+
+
+.. testsetup::
+
+    from sparsembar import *
