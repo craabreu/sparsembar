@@ -4,13 +4,6 @@ channels:
 dependencies:
     # Base depends
   - python
-  - openmm>=7.6
-  - openmmtools
-  - mdtraj
-  - numpy
-  - scipy
-  - pytest
-  - xmltodict
 
     # Linting
   - flake8
