@@ -231,14 +231,6 @@ autodoc_typehints_format = "short"
 # Bibliography file
 bibtex_bibfiles = ["refs.bib"]
 
-# External links
-extlinks = {
-    "OpenMM": (
-        "http://docs.openmm.org/latest/api-python/generated/openmm.openmm.%s.html",
-        "openmm.%s",
-    )
-}
-
 # Copy button configuration
 copybutton_prompt_text = r">>> |\.\.\. "
 copybutton_prompt_is_regexp = True

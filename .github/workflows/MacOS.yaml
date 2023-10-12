@@ -21,7 +21,6 @@ jobs:
       matrix:
         os: [macOS-latest]
         python-version: [3.9, "3.10", 3.11]
-        openmm-version: ["8.0"]
 
     steps:
       - uses: actions/checkout@v3
@@ -40,7 +39,6 @@ jobs:
           environment-name: test
           create-args: >-
             python=${{ matrix.python-version }}
-            openmm=${{ matrix.openmm-version }}
 
       - name: Install package
         shell: bash -l {0}
