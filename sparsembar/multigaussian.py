@@ -7,11 +7,13 @@
 """
 
 import typing as t
+from functools import partial
+
 import jax
 from jax import numpy as jnp
 
 
-@jax.jit
+@partial(jax.jit, static_argnames="draws")
 def _draw_samples(
     means: jnp.ndarray,
     sigmas: jnp.ndarray,
@@ -95,6 +97,12 @@ class MultiGaussian:
         passed, all distributions have the same standard deviation.
     seed
         A seed for the pseudo-random number generator.
+
+    Examples
+    --------
+    >>> import sparsembar as smbar
+    >>> smbar.MultiGaussian([0, 1, 2], 1.0, 1234)
+    MultiGaussian(means=[(0,), (1,), (2,)], sigmas=[1. 1. 1.], seed=1234)
     """
 
     def __init__(
@@ -110,25 +118,43 @@ class MultiGaussian:
         if are_all(int)(means):
             self._dim = 1
             self._mean_tuples = [(mean,) for mean in means]
-            self._means = jnp.array(means, dtype=jnp.float64).reshape((-1, 1))
+            self._means = jnp.array(means).reshape((-1, 1))
         elif are_all(tuple)(means) and all(map(are_all(int), means)):
             items = iter(means)
             self._dim = len(next(items))
             if any(len(item) != self._dim for item in items):
                 raise ValueError("All tuples must have the same length.")
             self._mean_tuples = means
-            self._means = jnp.array(means, dtype=jnp.float64)
+            self._means = jnp.array(means)
         else:
             raise ValueError("Each mean must be an integer or a tuple of integers.")
         if isinstance(sigmas, (int, float)):
-            self._sigmas = jnp.ones(self._num, dtype=jnp.float64) * sigmas
+            self._sigmas = jnp.ones(self._num) * sigmas
         elif len(sigmas) == self._num and are_all((int, float))(sigmas):
-            self._sigmas = jnp.array(sigmas, dtype=jnp.float64)
+            self._sigmas = jnp.array(sigmas)
         else:
             raise ValueError("Each sigma must be a float or a sequence of floats.")
         if any(self._sigmas <= 0.0):
             raise ValueError("All sigmas must be positive.")
+        self._seed = seed
         self._prng_key = jax.random.PRNGKey(seed)
+
+    def __repr__(self) -> str:
+        return (
+            "MultiGaussian("
+            f"means={self._mean_tuples}, sigmas={self._sigmas}, seed={self._seed}"
+            ")"
+        )
+
+    @property
+    def means(self) -> jnp.ndarray:
+        """Returns the means of the Gaussian distributions."""
+        return self._means
+
+    @property
+    def sigmas(self) -> jnp.ndarray:
+        """Returns the standard deviations of the Gaussian distributions."""
+        return self._sigmas
 
     def draw_samples(self, num_draws: int) -> jnp.ndarray:
         """
@@ -161,6 +187,18 @@ class MultiGaussian:
         -------
         jnp.ndarray
             The samples drawn from the distributions, whose shape is (N, K, D).
+
+        Examples
+        --------
+        >>> import sparsembar as smbar
+        >>> smbar.MultiGaussian(
+        ...     [0, 1, 2], 1.0, 1234
+        ... ).draw_samples(10).shape
+        (10, 3, 1)
+        >>> smbar.MultiGaussian(
+        ...     [(0, 0), (0, 1), (1, 1)], 1.0, 1234
+        ... ).draw_samples(5).shape
+        (5, 3, 2)
         """
         return _draw_samples(self._means, self._sigmas, num_draws, self._prng_key)
 
@@ -210,6 +248,30 @@ class MultiGaussian:
         jnp.ndarray
             The reduced energy matrix of the sample. The shape is :math:`(K, KN)` or
             :math:`(K, K, N)`, depending on the value of `kn_format`.
+
+        Examples
+        --------
+        >>> import itertools as it
+        >>> from pytest import approx
+        >>> import sparsembar as smbar
+        >>> means = [(0, 0, 0), (0, 0, 1), (0, 1, 1), (1, 1, 1)]
+        >>> multigaussian = smbar.MultiGaussian(means, 1.0, 1234)
+        >>> samples = multigaussian.draw_samples(10)
+        >>> samples.shape
+        (10, 4, 3)
+        >>> matrix = multigaussian.compute_reduced_energy_matrix(
+        ...     samples, kn_format=False
+        ... )
+        >>> matrix.shape
+        (4, 4, 10)
+        >>> for k in range(4):
+        ...     mean = multigaussian.means[k]
+        ...     sigma = multigaussian.sigmas[k]
+        ...     for l, n in it.product(range(4), range(10)):
+        ...         u_kln = 0.5 * jnp.square(
+        ...             (samples[n, l, :] - mean) / sigma
+        ...         ).sum()
+        ...         assert matrix[k, l, n] == approx(u_kln)
         """
         matrix = _compute_reduced_energy_matrix(samples, self._means, self._sigmas)
         return matrix.reshape(self._num, -1) if kn_format else matrix
