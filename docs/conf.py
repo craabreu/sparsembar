@@ -27,7 +27,6 @@ sys.path.insert(0, os.path.abspath(".."))
 def create_rst_file(cls):
     name = cls.__name__
     methods = list(filter(lambda x: not x.startswith("_"), cls.__dict__))
-    methods.sort()
     with open(f"api/{name}.rst", "w") as f:
         f.writelines(
             [
@@ -35,7 +34,7 @@ def create_rst_file(cls):
                 "=" * len(name) + "\n\n",
                 ".. currentmodule:: sparsembar\n",
                 f".. autoclass:: {name}\n",
-                "    :member-order: alphabetical\n\n",
+                "    :member-order: bysource\n\n",
                 "    .. rubric:: Methods\n\n",
             ]
             + [f"    .. automethod:: {method}\n" for method in methods]
