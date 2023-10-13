@@ -4,6 +4,7 @@ Python API
 .. toctree::
     :titlesonly:
 
+    MultiGaussian
 
 .. testsetup::
 

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>MultiGaussian &#8212; Sparse MBAR  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+    <link rel="stylesheet" type="text/css" href="../_static/alabaster.css?v=039e1c02" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/css/custom.css?v=572d9513" />
+    <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=ccdb6887"></script>
+    <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Bibliography" href="../references.html" />
+    <link rel="prev" title="Python API" href="index.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="multigaussian">
+<h1>MultiGaussian<a class="headerlink" href="#multigaussian" title="Link to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="sparsembar.MultiGaussian">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sparsembar.</span></span><span class="sig-name descname"><span class="pre">MultiGaussian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">means</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigmas</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sparsembar/multigaussian.html#MultiGaussian"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sparsembar.MultiGaussian" title="Link to this definition">¶</a></dt>
+<dd><p>A set of multidimensional, independent Gaussian distributions. The means of the
+distributions are located at nodes of an integer lattice. All the distributions
+are isotropic, i.e., the covariance matrix of every distribution <span class="math notranslate nohighlight">\(k\)</span> is
+<span class="math notranslate nohighlight">\(\sigma_k^2 \mathbf{I}\)</span>, where <span class="math notranslate nohighlight">\(\sigma_k\)</span> is the standard
+deviation and <span class="math notranslate nohighlight">\(\mathbf{I}\)</span> is the identity matrix.</p>
+<p>The number of distributions is <span class="math notranslate nohighlight">\(K\)</span> and the number of dimensions is <span class="math notranslate nohighlight">\(D\)</span>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>means</strong> (<em>Sequence</em><em>[</em><em>int</em><em> | </em><em>Tuple</em><em>[</em><em>int</em><em>, </em><em>...</em><em>]</em><em>]</em>) – The locations of the means of the distributions. It can be a sequence of
+integers for one-dimensional distributions or a sequence of tuples of integers
+for multi-dimensional distributions. All tuples must have the same length. Both
+<span class="math notranslate nohighlight">\(K\)</span> and <span class="math notranslate nohighlight">\(D\)</span> are inferred from the passed sequence.</p></li>
+<li><p><strong>sigmas</strong> (<em>float</em><em> | </em><em>Sequence</em><em>[</em><em>float</em><em>]</em>) – The standard deviation of the Gaussian distributions. If a single value is
+passed, all distributions have the same standard deviation.</p></li>
+<li><p><strong>seed</strong> (<em>int</em>) – A seed for the pseudo-random number generator.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">sparsembar</span> <span class="k">as</span> <span class="nn">smbar</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">smbar</span><span class="o">.</span><span class="n">MultiGaussian</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">1234</span><span class="p">)</span>
+<span class="go">MultiGaussian(means=[(0,), (1,), (2,)], sigmas=[1. 1. 1.], seed=1234)</span>
+</pre></div>
+</div>
+<p class="rubric">Methods</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="sparsembar.MultiGaussian.means">
+<span class="sig-name descname"><span class="pre">means</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sparsembar.MultiGaussian.means" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the means of the Gaussian distributions.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sparsembar.MultiGaussian.sigmas">
+<span class="sig-name descname"><span class="pre">sigmas</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#sparsembar.MultiGaussian.sigmas" title="Link to this definition">¶</a></dt>
+<dd><p>Returns the standard deviations of the Gaussian distributions.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sparsembar.MultiGaussian.draw_samples">
+<span class="sig-name descname"><span class="pre">draw_samples</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_draws</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sparsembar/multigaussian.html#MultiGaussian.draw_samples"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sparsembar.MultiGaussian.draw_samples" title="Link to this definition">¶</a></dt>
+<dd><p>Draw samples from this collection of multidimensional Gaussian distributions.</p>
+<p>The probability density function of a configuration <span class="math notranslate nohighlight">\(\mathbf{X} =
+\{\mathbf{x}_0, \ldots, \mathbf{x}_{K-1}\}\)</span>, where each
+<span class="math notranslate nohighlight">\(\mathbf{x}_i\)</span> is a <span class="math notranslate nohighlight">\(D\)</span>-dimensional random vector, is given by</p>
+<div class="math notranslate nohighlight">
+\[p(\mathbf{X}) =  \frac{1}{(2 \pi \sigma^2)^{KD/2}}
+    \exp \left( - \frac{1}{2 \sigma^2} \sum_{i=0}^{K-1}
+        \left\| \mathbf{x}_i - \boldsymbol{\mu}_i \right\|^2
+    \right),\]</div>
+<p>where <span class="math notranslate nohighlight">\(\boldsymbol{\mu}_i\)</span> is the mean of the <span class="math notranslate nohighlight">\(i\)</span>-th Gaussian
+distribution and <span class="math notranslate nohighlight">\(\|\cdot\|\)</span> is the Euclidean norm.</p>
+<p>This method returns a sample <span class="math notranslate nohighlight">\(\{\mathbf{X}_0, \ldots,
+\mathbf{X}_{N-1}\}\)</span> in the form of an array of shape (N, K, D).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>num_draws</strong> (<em>int</em>) – The number of samples <span class="math notranslate nohighlight">\(N\)</span> to be drawn from the multigaussian
+distribution.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The samples drawn from the distributions, whose shape is (N, K, D).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>jnp.ndarray</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">sparsembar</span> <span class="k">as</span> <span class="nn">smbar</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">smbar</span><span class="o">.</span><span class="n">MultiGaussian</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">1234</span>
+<span class="gp">... </span><span class="p">)</span><span class="o">.</span><span class="n">draw_samples</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(10, 3, 1)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">smbar</span><span class="o">.</span><span class="n">MultiGaussian</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)],</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">1234</span>
+<span class="gp">... </span><span class="p">)</span><span class="o">.</span><span class="n">draw_samples</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(5, 3, 2)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="sparsembar.MultiGaussian.compute_reduced_energy_matrix">
+<span class="sig-name descname"><span class="pre">compute_reduced_energy_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">samples</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kn_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sparsembar/multigaussian.html#MultiGaussian.compute_reduced_energy_matrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sparsembar.MultiGaussian.compute_reduced_energy_matrix" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the reduced energy matrix of a sample.</p>
+<p>The sample is assumed to have been drawn using <a class="reference internal" href="#sparsembar.MultiGaussian.draw_samples" title="sparsembar.MultiGaussian.draw_samples"><code class="xref py py-func docutils literal notranslate"><span class="pre">draw_samples()</span></code></a>, so that
+its shape is (N, K, D), where N is the number of samples per distribution,
+K is the number of distributions, and D is the number of dimensions.</p>
+<p>The reduced energy matrix can be returned one of two ways:</p>
+<ol class="arabic simple">
+<li><p>An array of shape <span class="math notranslate nohighlight">\((K, K, N)\)</span> whose elements are given by</p></li>
+</ol>
+<div class="math notranslate nohighlight">
+\[u_{k,l,n} = \frac{1}{2 \sigma^2} \left\|
+    \mathbf{x}_k(\mathbf{X}_n) - \boldsymbol{\mu}_k
+\right\|^2\]</div>
+<ol class="arabic simple" start="2">
+<li><p>(default) An array of shape <span class="math notranslate nohighlight">\((K, KN)\)</span> whose elements are given by</p></li>
+</ol>
+<div class="math notranslate nohighlight">
+\[u_{k,n} = \frac{1}{2 \sigma^2} \left\|
+    \mathbf{x}_{n \bmod K}\left(
+        \mathbf{X}_{\lfloor n/K \rfloor}
+    \right) - \boldsymbol{\mu}_k
+\right\|^2\]</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>samples</strong> (<em>Array</em>) – The samples drawn from the distributions. The shape must be (N, K, D),
+where N is the number of samples per distribution, K is the number of
+distributions, and D is the number of dimensions.</p></li>
+<li><p><strong>kn_format</strong> (<em>bool</em>) – Whether to return the matrix in the <span class="math notranslate nohighlight">\(u_{k,n}\)</span> format with shape
+<span class="math notranslate nohighlight">\((K, KN)\)</span>. If False, the matrix is returned in the <span class="math notranslate nohighlight">\(u_{k,l,n}\)</span>
+format with shape <span class="math notranslate nohighlight">\((K, K, N)\)</span>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The reduced energy matrix of the sample. The shape is <span class="math notranslate nohighlight">\((K, KN)\)</span> or
+<span class="math notranslate nohighlight">\((K, K, N)\)</span>, depending on the value of <cite>kn_format</cite>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>jnp.ndarray</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">itertools</span> <span class="k">as</span> <span class="nn">it</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">pytest</span> <span class="kn">import</span> <span class="n">approx</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">sparsembar</span> <span class="k">as</span> <span class="nn">smbar</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">means</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">multigaussian</span> <span class="o">=</span> <span class="n">smbar</span><span class="o">.</span><span class="n">MultiGaussian</span><span class="p">(</span><span class="n">means</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">1234</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">samples</span> <span class="o">=</span> <span class="n">multigaussian</span><span class="o">.</span><span class="n">draw_samples</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">samples</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(10, 4, 3)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">matrix</span> <span class="o">=</span> <span class="n">multigaussian</span><span class="o">.</span><span class="n">compute_reduced_energy_matrix</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">samples</span><span class="p">,</span> <span class="n">kn_format</span><span class="o">=</span><span class="kc">False</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">matrix</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(4, 4, 10)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">mean</span> <span class="o">=</span> <span class="n">multigaussian</span><span class="o">.</span><span class="n">means</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+<span class="gp">... </span>    <span class="n">sigma</span> <span class="o">=</span> <span class="n">multigaussian</span><span class="o">.</span><span class="n">sigmas</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+<span class="gp">... </span>    <span class="k">for</span> <span class="n">l</span><span class="p">,</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">it</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">)):</span>
+<span class="gp">... </span>        <span class="n">u_kln</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">jnp</span><span class="o">.</span><span class="n">square</span><span class="p">(</span>
+<span class="gp">... </span>            <span class="p">(</span><span class="n">samples</span><span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">/</span> <span class="n">sigma</span>
+<span class="gp">... </span>        <span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+<span class="gp">... </span>        <span class="k">assert</span> <span class="n">matrix</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">==</span> <span class="n">approx</span><span class="p">(</span><span class="n">u_kln</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">Sparse MBAR</a></h1>
+
+
+
+
+
+
+
+
+
+
+
+<h3><a href="../index.html">Table of Contents</a></h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Python API</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">MultiGaussian</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../references.html">Bibliography</a></li>
+</ul>
+
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2023, Charlles Abreu | CMS Cookiecutter v1.1.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 7.2.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.13</a>
+      
+      |
+      <a href="../_sources/api/MultiGaussian.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
