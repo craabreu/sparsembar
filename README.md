@@ -50,4 +50,6 @@ Copyright (c) 2023, Charlles Abreu
 
 #### Acknowledgements
 
-Project based on the [CMS Cookiecutter] version 1.1.
+This project is based on the [CMS Cookiecutter] version 1.1.
+
+[CMS Cookiecutter]:   https://github.com/molssi/cookiecutter-cms
