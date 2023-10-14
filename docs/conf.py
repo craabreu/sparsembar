@@ -6,56 +6,34 @@
 # full list see the documentation:
 # http://www.sphinx-doc.org/en/stable/config
 
+# pylint: disable=invalid-name,redefined-builtin
+
 # -- Path setup --------------------------------------------------------------
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
-from __future__ import annotations
-
-import inspect
+# Incase the project was not installed
 import os
 import sys
 
-# Incase the project was not installed
-import sparsembar
+import sparsembar  # pylint: disable=unused-import
 
 sys.path.insert(0, os.path.abspath(".."))
 
-
-def create_rst_file(cls):
-    name = cls.__name__
-    methods = list(filter(lambda x: not x.startswith("_"), cls.__dict__))
-    with open(f"api/{name}.rst", "w") as f:
-        f.writelines(
-            [
-                f"{name}\n",
-                "=" * len(name) + "\n\n",
-                ".. currentmodule:: sparsembar\n",
-                f".. autoclass:: {name}\n",
-                "    :member-order: bysource\n\n",
-                "    .. rubric:: Methods\n\n",
-            ]
-            + [f"    .. automethod:: {method}\n" for method in methods]
-        )
-
-
-with open("api/index.rst", "w") as f:
-    f.write("Python API\n==========\n\n.. toctree::\n    :titlesonly:\n\n")
-    for item in sparsembar.__dict__.values():
-        if inspect.isclass(item):
-            f.write(f"    {item.__name__}\n")
-            create_rst_file(item)
-    f.write("\n.. testsetup::\n\n    from sparsembar import *")
 
 # -- Project information -----------------------------------------------------
 
 project = "Sparse MBAR"
 copyright = "2023, Charlles Abreu | CMS Cookiecutter v1.1"
 author = "Charlles Abreu"
+
+# The short X.Y version
 version = ""
+# The full version, including alpha/beta/rc tags
 release = ""
+
 
 # -- General configuration ---------------------------------------------------
 
@@ -132,10 +110,10 @@ html_sidebars = {
 html_use_smartypants = True
 html_last_updated_fmt = "%b %d, %Y"
 html_split_index = False
-html_short_title = "%s-%s" % (project, version)
+html_short_title = f"{project}-{version}"
 
 
-def setup(app):
+def setup(app):  # pylint: disable=missing-function-docstring
     app.add_css_file("css/custom.css")
 
 
@@ -188,13 +166,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (
-        master_doc,
-        "sparsembar.tex",
-        "Sparse MBAR Documentation",
-        "sparsembar",
-        "manual",
-    ),
+    (master_doc, "sparsembar.tex", "Sparse MBAR Documentation", "sparsembar", "manual"),
 ]
 
 
@@ -221,6 +193,7 @@ texinfo_documents = [
         "Miscellaneous",
     ),
 ]
+
 
 # -- Extension configuration -------------------------------------------------
 autodoc_typehints = "description"

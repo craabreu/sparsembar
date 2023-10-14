@@ -148,12 +148,15 @@ class MultiGaussian:
 
     @property
     def means(self) -> jnp.ndarray:
-        """Returns the means of the Gaussian distributions."""
+        """The means of the Gaussian distributions. Shape is :math:`(K, D)`, where
+        :math:`K` is the number of distributions and :math:`D` is the number of
+        dimensions."""
         return self._means
 
     @property
     def sigmas(self) -> jnp.ndarray:
-        """Returns the standard deviations of the Gaussian distributions."""
+        """The standard deviations of the Gaussian distributions. Shape is
+        :math:`(K,)`, where :math:`K` is the number of distributions."""
         return self._sigmas
 
     def draw_samples(self, num_draws: int) -> jnp.ndarray:
@@ -162,14 +165,16 @@ class MultiGaussian:
 
         The probability density function of a configuration :math:`\\mathbf{X} =
         \\{\\mathbf{x}_0, \\ldots, \\mathbf{x}_{K-1}\\}`, where each
-        :math:`\\mathbf{x}_i` is a :math:`D`-dimensional random vector, is given by
+        :math:`\\mathbf{x}_i(\\mathbf{X})` is a :math:`D`-dimensional random vector,
+        is given by
 
         .. math::
 
-            p(\\mathbf{X}) =  \\frac{1}{(2 \\pi \\sigma^2)^{KD/2}}
-                \\exp \\left( - \\frac{1}{2 \\sigma^2} \\sum_{i=0}^{K-1}
-                    \\left\\| \\mathbf{x}_i - \\boldsymbol{\\mu}_i \\right\\|^2
-                \\right),
+            p(\\mathbf{X}) =  \\frac{1}{(2 \\pi \\sigma^2)^{KD/2}} \\exp \\left(
+                - \\frac{1}{2 \\sigma^2} \\sum_{i=0}^{K-1} \\left\\|
+                    \\mathbf{x}_i(\\mathbf{X}) - \\boldsymbol{\\mu}_i
+                \\right\\|^2
+            \\right),
 
         where :math:`\\boldsymbol{\\mu}_i` is the mean of the :math:`i`-th Gaussian
         distribution and :math:`\\|\\cdot\\|` is the Euclidean norm.
@@ -208,11 +213,12 @@ class MultiGaussian:
         """
         Compute the reduced energy matrix of a sample.
 
-        The sample is assumed to have been drawn using :func:`draw_samples`, so that
-        its shape is (N, K, D), where N is the number of samples per distribution,
-        K is the number of distributions, and D is the number of dimensions.
+        The sample is assumed to have been drawn using :func:`draw_samples`. Its
+        shape must be :math:`(N, K, D)` where :math:`N` is the number of samples per
+        distribution, :math:`K` is the number of distributions, and :math:`D` is the
+        number of dimensions.
 
-        The reduced energy matrix can be returned one of two ways:
+        The reduced energy matrix can be returned in one of two formats:
 
         1. A :math:`(K, K, N)`-shaped array whose elements are given by
 
@@ -259,6 +265,17 @@ class MultiGaussian:
         >>> samples = multigaussian.draw_samples(10)
         >>> samples.shape
         (10, 4, 3)
+        >>> matrix = multigaussian.compute_reduced_energy_matrix(samples)
+        >>> matrix.shape
+        (4, 40)
+        >>> for k in range(4):
+        ...     mean = multigaussian.means[k]
+        ...     sigma = multigaussian.sigmas[k]
+        ...     for n in range(40):
+        ...         u_kn = 0.5 * jnp.square(
+        ...             (samples[n % 10, n // 10, :] - mean) / sigma
+        ...         ).sum()
+        ...         assert matrix[k, n] == approx(u_kn)
         >>> matrix = multigaussian.compute_reduced_energy_matrix(
         ...     samples, kn_format=False
         ... )
