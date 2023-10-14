@@ -4,6 +4,8 @@ Getting Started
 Introduction
 ------------
 
+Sparse MBAR is a package that implements a sparse-matrix variant of the
+Multistate Bennett Acceptance Ratio (MBAR) algorithm :cite:`Shirts2008`.
 
 Installation
 ------------

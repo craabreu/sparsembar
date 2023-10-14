@@ -1,11 +1,5 @@
-Python API
-==========
+API Documentation
+=================
 
 .. toctree::
-    :titlesonly:
-
-    MultiGaussian
-
-.. testsetup::
-
-    from sparsembar import *
+   MultiGaussian

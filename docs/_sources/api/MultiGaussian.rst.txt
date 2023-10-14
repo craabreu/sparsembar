@@ -1,13 +1,5 @@
-MultiGaussian
-=============
-
 .. currentmodule:: sparsembar
+
 .. autoclass:: MultiGaussian
-    :member-order: bysource
-
-    .. rubric:: Methods
-
-    .. automethod:: means
-    .. automethod:: sigmas
-    .. automethod:: draw_samples
-    .. automethod:: compute_reduced_energy_matrix
+   :members:
+   :member-order: bysource
