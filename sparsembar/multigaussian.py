@@ -175,7 +175,7 @@ class MultiGaussian:
         distribution and :math:`\\|\\cdot\\|` is the Euclidean norm.
 
         This method returns a sample :math:`\\{\\mathbf{X}_0, \\ldots,
-        \\mathbf{X}_{N-1}\\}` in the form of an array of shape (N, K, D).
+        \\mathbf{X}_{N-1}\\}` in the form of a :math:`(N, K, D)`-shaped array.
 
         Parameters
         ----------
@@ -186,7 +186,7 @@ class MultiGaussian:
         Returns
         -------
         jnp.ndarray
-            The samples drawn from the distributions, whose shape is (N, K, D).
+            The samples drawn from the distributions, whose shape is :math:`(N, K, D)`.
 
         Examples
         --------
@@ -214,15 +214,15 @@ class MultiGaussian:
 
         The reduced energy matrix can be returned one of two ways:
 
-        1. An array of shape :math:`(K, K, N)` whose elements are given by
+        1. A :math:`(K, K, N)`-shaped array whose elements are given by
 
         .. math::
 
             u_{k,l,n} = \\frac{1}{2 \\sigma^2} \\left\\|
-                \\mathbf{x}_k(\\mathbf{X}_n) - \\boldsymbol{\\mu}_k
+                \\mathbf{x}_l(\\mathbf{X}_n) - \\boldsymbol{\\mu}_k
             \\right\\|^2
 
-        2. (default) An array of shape :math:`(K, KN)` whose elements are given by
+        2. (default) A :math:`(K, KN)`-shaped array whose elements are given by
 
         .. math::
 
