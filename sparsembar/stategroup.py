@@ -50,8 +50,12 @@ class StateGroup:
     >>> samples = model.draw_samples(100)
     >>> matrix = model.compute_reduced_potentials(samples)
     >>> state_group = smbar.StateGroup(means, matrix)
-    >>> matrix = model.compute_reduced_potentials(samples, kn_format=False)
-    >>> state_group = smbar.StateGroup(means, matrix, sample_sizes=[80, 90, 100])
+    >>> matrix = model.compute_reduced_potentials(
+    ...     samples, kn_format=False,
+    ... )
+    >>> state_group = smbar.StateGroup(
+    ...     means, matrix, sample_sizes=[80, 90, 100],
+    ... )
     >>> state_group
     StateGroup(states=[0, 1, 2], sample_sizes=[ 80  90 100])
     """
