@@ -45,13 +45,13 @@ def _draw_samples(
 
 
 @jax.jit
-def _compute_reduced_energy_matrix(
+def _compute_reduced_potentials(
     samples: jnp.ndarray,
     means: jnp.ndarray,
     sigmas: jnp.ndarray,
 ) -> jnp.ndarray:
     """
-    Compute the reduced energy matrix of a sample taken from a collection of
+    Compute the reduced potential matrix of a sample taken from a collection of
     multidimensional Gaussian distributions.
 
     Parameters
@@ -69,7 +69,7 @@ def _compute_reduced_energy_matrix(
     Returns
     -------
     jnp.ndarray
-        The energy matrix of the sample, whose shape is (num, num, draws).
+        The reduced potential matrix of the sample, whose shape is (num, num, draws).
     """
     devs = samples[:, :, None, :] - means
     return 0.5 * jnp.square(devs / sigmas[:, None]).sum(axis=3).transpose()
@@ -207,18 +207,18 @@ class MultiGaussian:
         """
         return _draw_samples(self._means, self._sigmas, num_draws, self._prng_key)
 
-    def compute_reduced_energy_matrix(
+    def compute_reduced_potentials(
         self, samples: jnp.ndarray, kn_format: bool = True
     ) -> jnp.ndarray:
         """
-        Compute the reduced energy matrix of a sample.
+        Compute the reduced potential matrix of a sample.
 
         The sample is assumed to have been drawn using :func:`draw_samples`. Its
         shape must be :math:`(N, K, D)` where :math:`N` is the number of samples per
         distribution, :math:`K` is the number of distributions, and :math:`D` is the
         number of dimensions.
 
-        The reduced energy matrix can be returned in one of two formats:
+        The reduced potential matrix can be returned in one of two formats:
 
         1. A :math:`(K, K, N)`-shaped array whose elements are given by
 
@@ -252,7 +252,7 @@ class MultiGaussian:
         Returns
         -------
         jnp.ndarray
-            The reduced energy matrix of the sample. The shape is :math:`(K, KN)` or
+            The reduced potential matrix of the sample. The shape is :math:`(K, KN)` or
             :math:`(K, K, N)`, depending on the value of `kn_format`.
 
         Examples
@@ -265,7 +265,7 @@ class MultiGaussian:
         >>> samples = multigaussian.draw_samples(10)
         >>> samples.shape
         (10, 4, 3)
-        >>> matrix = multigaussian.compute_reduced_energy_matrix(samples)
+        >>> matrix = multigaussian.compute_reduced_potentials(samples)
         >>> matrix.shape
         (4, 40)
         >>> for k in range(4):
@@ -276,7 +276,7 @@ class MultiGaussian:
         ...             (samples[n % 10, n // 10, :] - mean) / sigma
         ...         ).sum()
         ...         assert matrix[k, n] == approx(u_kn)
-        >>> matrix = multigaussian.compute_reduced_energy_matrix(
+        >>> matrix = multigaussian.compute_reduced_potentials(
         ...     samples, kn_format=False
         ... )
         >>> matrix.shape
@@ -290,5 +290,5 @@ class MultiGaussian:
         ...         ).sum()
         ...         assert matrix[k, l, n] == approx(u_kln)
         """
-        matrix = _compute_reduced_energy_matrix(samples, self._means, self._sigmas)
+        matrix = _compute_reduced_potentials(samples, self._means, self._sigmas)
         return matrix.reshape(self._num, -1) if kn_format else matrix
