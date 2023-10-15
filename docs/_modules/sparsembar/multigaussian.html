@@ -80,13 +80,13 @@
 
 
 <span class="nd">@jax</span><span class="o">.</span><span class="n">jit</span>
-<span class="k">def</span> <span class="nf">_compute_reduced_energy_matrix</span><span class="p">(</span>
+<span class="k">def</span> <span class="nf">_compute_reduced_potentials</span><span class="p">(</span>
     <span class="n">samples</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">means</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">sigmas</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Compute the reduced energy matrix of a sample taken from a collection of</span>
+<span class="sd">    Compute the reduced potential matrix of a sample taken from a collection of</span>
 <span class="sd">    multidimensional Gaussian distributions.</span>
 
 <span class="sd">    Parameters</span>
@@ -104,7 +104,7 @@
 <span class="sd">    Returns</span>
 <span class="sd">    -------</span>
 <span class="sd">    jnp.ndarray</span>
-<span class="sd">        The energy matrix of the sample, whose shape is (num, num, draws).</span>
+<span class="sd">        The reduced potential matrix of the sample, whose shape is (num, num, draws).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">devs</span> <span class="o">=</span> <span class="n">samples</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">means</span>
     <span class="k">return</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">jnp</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">devs</span> <span class="o">/</span> <span class="n">sigmas</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">])</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
@@ -247,20 +247,20 @@
         <span class="k">return</span> <span class="n">_draw_samples</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_means</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sigmas</span><span class="p">,</span> <span class="n">num_draws</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prng_key</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="MultiGaussian.compute_reduced_energy_matrix">
-<a class="viewcode-back" href="../../api/MultiGaussian.html#sparsembar.MultiGaussian.compute_reduced_energy_matrix">[docs]</a>
-    <span class="k">def</span> <span class="nf">compute_reduced_energy_matrix</span><span class="p">(</span>
+<div class="viewcode-block" id="MultiGaussian.compute_reduced_potentials">
+<a class="viewcode-back" href="../../api/MultiGaussian.html#sparsembar.MultiGaussian.compute_reduced_potentials">[docs]</a>
+    <span class="k">def</span> <span class="nf">compute_reduced_potentials</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">samples</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">kn_format</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Compute the reduced energy matrix of a sample.</span>
+<span class="sd">        Compute the reduced potential matrix of a sample.</span>
 
 <span class="sd">        The sample is assumed to have been drawn using :func:`draw_samples`. Its</span>
 <span class="sd">        shape must be :math:`(N, K, D)` where :math:`N` is the number of samples per</span>
 <span class="sd">        distribution, :math:`K` is the number of distributions, and :math:`D` is the</span>
 <span class="sd">        number of dimensions.</span>
 
-<span class="sd">        The reduced energy matrix can be returned in one of two formats:</span>
+<span class="sd">        The reduced potential matrix can be returned in one of two formats:</span>
 
 <span class="sd">        1. A :math:`(K, K, N)`-shaped array whose elements are given by</span>
 
@@ -294,7 +294,7 @@
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
 <span class="sd">        jnp.ndarray</span>
-<span class="sd">            The reduced energy matrix of the sample. The shape is :math:`(K, KN)` or</span>
+<span class="sd">            The reduced potential matrix of the sample. The shape is :math:`(K, KN)` or</span>
 <span class="sd">            :math:`(K, K, N)`, depending on the value of `kn_format`.</span>
 
 <span class="sd">        Examples</span>
@@ -307,7 +307,7 @@
 <span class="sd">        &gt;&gt;&gt; samples = multigaussian.draw_samples(10)</span>
 <span class="sd">        &gt;&gt;&gt; samples.shape</span>
 <span class="sd">        (10, 4, 3)</span>
-<span class="sd">        &gt;&gt;&gt; matrix = multigaussian.compute_reduced_energy_matrix(samples)</span>
+<span class="sd">        &gt;&gt;&gt; matrix = multigaussian.compute_reduced_potentials(samples)</span>
 <span class="sd">        &gt;&gt;&gt; matrix.shape</span>
 <span class="sd">        (4, 40)</span>
 <span class="sd">        &gt;&gt;&gt; for k in range(4):</span>
@@ -318,7 +318,7 @@
 <span class="sd">        ...             (samples[n % 10, n // 10, :] - mean) / sigma</span>
 <span class="sd">        ...         ).sum()</span>
 <span class="sd">        ...         assert matrix[k, n] == approx(u_kn)</span>
-<span class="sd">        &gt;&gt;&gt; matrix = multigaussian.compute_reduced_energy_matrix(</span>
+<span class="sd">        &gt;&gt;&gt; matrix = multigaussian.compute_reduced_potentials(</span>
 <span class="sd">        ...     samples, kn_format=False</span>
 <span class="sd">        ... )</span>
 <span class="sd">        &gt;&gt;&gt; matrix.shape</span>
@@ -332,7 +332,7 @@
 <span class="sd">        ...         ).sum()</span>
 <span class="sd">        ...         assert matrix[k, l, n] == approx(u_kln)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">matrix</span> <span class="o">=</span> <span class="n">_compute_reduced_energy_matrix</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_means</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sigmas</span><span class="p">)</span>
+        <span class="n">matrix</span> <span class="o">=</span> <span class="n">_compute_reduced_potentials</span><span class="p">(</span><span class="n">samples</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_means</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sigmas</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">matrix</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">kn_format</span> <span class="k">else</span> <span class="n">matrix</span></div>
 </div>
 

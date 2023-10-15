@@ -18,7 +18,7 @@
     <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Bibliography" href="../references.html" />
+    <link rel="next" title="&lt;no title&gt;" href="SparseMBAR.html" />
     <link rel="prev" title="API Documentation" href="index.html" />
    
   <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
@@ -124,14 +124,14 @@ distribution.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="sparsembar.MultiGaussian.compute_reduced_energy_matrix">
-<span class="sig-name descname"><span class="pre">compute_reduced_energy_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">samples</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kn_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sparsembar/multigaussian.html#MultiGaussian.compute_reduced_energy_matrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sparsembar.MultiGaussian.compute_reduced_energy_matrix" title="Link to this definition">¶</a></dt>
-<dd><p>Compute the reduced energy matrix of a sample.</p>
+<dt class="sig sig-object py" id="sparsembar.MultiGaussian.compute_reduced_potentials">
+<span class="sig-name descname"><span class="pre">compute_reduced_potentials</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">samples</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kn_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sparsembar/multigaussian.html#MultiGaussian.compute_reduced_potentials"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sparsembar.MultiGaussian.compute_reduced_potentials" title="Link to this definition">¶</a></dt>
+<dd><p>Compute the reduced potential matrix of a sample.</p>
 <p>The sample is assumed to have been drawn using <a class="reference internal" href="#sparsembar.MultiGaussian.draw_samples" title="sparsembar.MultiGaussian.draw_samples"><code class="xref py py-func docutils literal notranslate"><span class="pre">draw_samples()</span></code></a>. Its
 shape must be <span class="math notranslate nohighlight">\((N, K, D)\)</span> where <span class="math notranslate nohighlight">\(N\)</span> is the number of samples per
 distribution, <span class="math notranslate nohighlight">\(K\)</span> is the number of distributions, and <span class="math notranslate nohighlight">\(D\)</span> is the
 number of dimensions.</p>
-<p>The reduced energy matrix can be returned in one of two formats:</p>
+<p>The reduced potential matrix can be returned in one of two formats:</p>
 <ol class="arabic simple">
 <li><p>A <span class="math notranslate nohighlight">\((K, K, N)\)</span>-shaped array whose elements are given by</p></li>
 </ol>
@@ -160,7 +160,7 @@ format with shape <span class="math notranslate nohighlight">\((K, K, N)\)</span
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The reduced energy matrix of the sample. The shape is <span class="math notranslate nohighlight">\((K, KN)\)</span> or
+<dd class="field-even"><p>The reduced potential matrix of the sample. The shape is <span class="math notranslate nohighlight">\((K, KN)\)</span> or
 <span class="math notranslate nohighlight">\((K, K, N)\)</span>, depending on the value of <cite>kn_format</cite>.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
@@ -176,7 +176,7 @@ format with shape <span class="math notranslate nohighlight">\((K, K, N)\)</span
 <span class="gp">&gt;&gt;&gt; </span><span class="n">samples</span> <span class="o">=</span> <span class="n">multigaussian</span><span class="o">.</span><span class="n">draw_samples</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">samples</span><span class="o">.</span><span class="n">shape</span>
 <span class="go">(10, 4, 3)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">matrix</span> <span class="o">=</span> <span class="n">multigaussian</span><span class="o">.</span><span class="n">compute_reduced_energy_matrix</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">matrix</span> <span class="o">=</span> <span class="n">multigaussian</span><span class="o">.</span><span class="n">compute_reduced_potentials</span><span class="p">(</span><span class="n">samples</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">matrix</span><span class="o">.</span><span class="n">shape</span>
 <span class="go">(4, 40)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
@@ -187,7 +187,7 @@ format with shape <span class="math notranslate nohighlight">\((K, K, N)\)</span
 <span class="gp">... </span>            <span class="p">(</span><span class="n">samples</span><span class="p">[</span><span class="n">n</span> <span class="o">%</span> <span class="mi">10</span><span class="p">,</span> <span class="n">n</span> <span class="o">//</span> <span class="mi">10</span><span class="p">,</span> <span class="p">:]</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">/</span> <span class="n">sigma</span>
 <span class="gp">... </span>        <span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
 <span class="gp">... </span>        <span class="k">assert</span> <span class="n">matrix</span><span class="p">[</span><span class="n">k</span><span class="p">,</span> <span class="n">n</span><span class="p">]</span> <span class="o">==</span> <span class="n">approx</span><span class="p">(</span><span class="n">u_kn</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">matrix</span> <span class="o">=</span> <span class="n">multigaussian</span><span class="o">.</span><span class="n">compute_reduced_energy_matrix</span><span class="p">(</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">matrix</span> <span class="o">=</span> <span class="n">multigaussian</span><span class="o">.</span><span class="n">compute_reduced_potentials</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">samples</span><span class="p">,</span> <span class="n">kn_format</span><span class="o">=</span><span class="kc">False</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">matrix</span><span class="o">.</span><span class="n">shape</span>
@@ -231,6 +231,8 @@ format with shape <span class="math notranslate nohighlight">\((K, K, N)\)</span
 <li class="toctree-l1"><a class="reference internal" href="../getting_started.html">Getting Started</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">API Documentation</a><ul class="current">
 <li class="toctree-l2 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">MultiGaussian</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="SparseMBAR.html"><code class="docutils literal notranslate"><span class="pre">SparseMBAR</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="StateGroup.html"><code class="docutils literal notranslate"><span class="pre">StateGroup</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../references.html">Bibliography</a></li>
