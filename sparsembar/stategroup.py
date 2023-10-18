@@ -9,12 +9,12 @@
 import typing as t
 
 import jax
-from jax import config
 from jax import numpy as jnp
+from jax.config import config as jax_config
 from jax.scipy import special
 from scipy import optimize
 
-config.update("jax_enable_x64", True)
+jax_config.update("jax_enable_x64", True)
 
 
 @jax.jit
@@ -227,6 +227,8 @@ class StateGroup:
         >>> potentials = model.compute_reduced_potentials(samples)
         >>> state_group = smbar.StateGroup([0, 1, 2], potentials)
         >>> free_energies = state_group.compute_free_energies()
+        >>> free_energies
+        Array([...], dtype=float64)
         >>> mbar = MBAR(state_group.potentials, state_group.sample_sizes)
         >>> fe_diffs, _ = mbar.getFreeEnergyDifferences()
         >>> assert allclose(free_energies, fe_diffs[0, :])
