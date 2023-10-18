@@ -44,6 +44,8 @@
 
 <span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
 
+<span class="kn">from</span> <span class="nn">jax</span> <span class="kn">import</span> <span class="n">numpy</span> <span class="k">as</span> <span class="n">jnp</span>
+
 <span class="kn">from</span> <span class="nn">.stategroup</span> <span class="kn">import</span> <span class="n">StateGroup</span>
 
 
@@ -58,8 +60,10 @@
 <span class="sd">    --------</span>
 <span class="sd">    &gt;&gt;&gt; import sparsembar as smbar</span>
 <span class="sd">    &gt;&gt;&gt; state_id_lists = [0, 1, 2], [2, 3, 4]</span>
-<span class="sd">    &gt;&gt;&gt; models = [smbar.MultiGaussian(ids, 1, 123) for ids in state_id_lists]</span>
-<span class="sd">    &gt;&gt;&gt; samples = [model.draw_samples(100) for model in models]</span>
+<span class="sd">    &gt;&gt;&gt; models = [</span>
+<span class="sd">    ...     smbar.MultiGaussian(state_ids, 1)</span>
+<span class="sd">    ...     for state_ids in state_id_lists</span>
+<span class="sd">    ... ]</span>
 <span class="sd">    &gt;&gt;&gt; potentials = [</span>
 <span class="sd">    ...     model.compute_reduced_potentials(model.draw_samples(100))</span>
 <span class="sd">    ...     for model in models</span>
@@ -68,16 +72,29 @@
 <span class="sd">    ...     smbar.StateGroup(ids, matrix)</span>
 <span class="sd">    ...     for ids, matrix in zip(state_id_lists, potentials)</span>
 <span class="sd">    ... )</span>
-<span class="sd">    &gt;&gt;&gt; sorted(estimator.states)</span>
+<span class="sd">    &gt;&gt;&gt; states = sorted(estimator.all_states)</span>
+<span class="sd">    &gt;&gt;&gt; states</span>
 <span class="sd">    [0, 1, 2, 3, 4]</span>
+<span class="sd">    &gt;&gt;&gt; [estimator.groups_with_state(state) for state in states]</span>
+<span class="sd">    [[0], [0], [0, 1], [1], [1]]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_groups</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="n">StateGroup</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_state_groups</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">state_groups</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_states</span> <span class="o">=</span> <span class="p">{</span><span class="n">state</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_groups</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">states</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_groups</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">state_groups</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_all_states</span> <span class="o">=</span> <span class="p">{</span><span class="n">state</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groups</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">states</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_groups_with_state</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">state</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="n">index</span>
+                    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_groups</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">states</span>
+                <span class="p">]</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_states</span>
+        <span class="p">}</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">states</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">all_states</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return the set of states in the groups.</span>
 
@@ -87,7 +104,21 @@
 <span class="sd">            The set of states in the groups.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_states</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_states</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">groups</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">List</span><span class="p">[</span><span class="n">StateGroup</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The list of state groups.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groups</span>
+
+<div class="viewcode-block" id="SparseMBAR.groups_with_state">
+<a class="viewcode-back" href="../../api/SparseMBAR.html#sparsembar.SparseMBAR.groups_with_state">[docs]</a>
+    <span class="k">def</span> <span class="nf">groups_with_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Hashable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;The index of the state groups with the given state.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">state</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_states</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown state </span><span class="si">{</span><span class="n">state</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groups_with_state</span><span class="p">[</span><span class="n">state</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span></div>
+</div>
 
 </pre></div>
 

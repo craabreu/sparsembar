@@ -38,7 +38,7 @@
             
   <dl class="py class">
 <dt class="sig sig-object py" id="sparsembar.MultiGaussian">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sparsembar.</span></span><span class="sig-name descname"><span class="pre">MultiGaussian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">means</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigmas</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sparsembar/multigaussian.html#MultiGaussian"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sparsembar.MultiGaussian" title="Link to this definition">¶</a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">sparsembar.</span></span><span class="sig-name descname"><span class="pre">MultiGaussian</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">means</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sigmas</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sparsembar/multigaussian.html#MultiGaussian"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sparsembar.MultiGaussian" title="Link to this definition">¶</a></dt>
 <dd><p>A set of multidimensional, independent Gaussian distributions. The means of the
 distributions are located at nodes of an integer lattice. All the distributions
 are isotropic, i.e., the covariance matrix of every distribution <span class="math notranslate nohighlight">\(k\)</span> is
@@ -54,14 +54,15 @@ for multi-dimensional distributions. All tuples must have the same length. Both
 <span class="math notranslate nohighlight">\(K\)</span> and <span class="math notranslate nohighlight">\(D\)</span> are inferred from the passed sequence.</p></li>
 <li><p><strong>sigmas</strong> (<em>float</em><em> | </em><em>Sequence</em><em>[</em><em>float</em><em>]</em>) – The standard deviation of the Gaussian distributions. If a single value is
 passed, all distributions have the same standard deviation.</p></li>
-<li><p><strong>seed</strong> (<em>int</em>) – A seed for the pseudo-random number generator.</p></li>
+<li><p><strong>seed</strong> (<em>int</em><em> | </em><em>None</em>) – A seed for the pseudo-random number generator. If not provided, a
+system-generated random seed will be used.</p></li>
 </ul>
 </dd>
 </dl>
 <p class="rubric">Examples</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">sparsembar</span> <span class="k">as</span> <span class="nn">smbar</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">smbar</span><span class="o">.</span><span class="n">MultiGaussian</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">1234</span><span class="p">)</span>
-<span class="go">MultiGaussian(means=[(0,), (1,), (2,)], sigmas=[1. 1. 1.], seed=1234)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">smbar</span><span class="o">.</span><span class="n">MultiGaussian</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="mf">1.0</span><span class="p">)</span>
+<span class="go">MultiGaussian(means=[(0,), (1,), (2,)], sigmas=[1. 1. 1.], seed=...)</span>
 </pre></div>
 </div>
 <dl class="py property">
@@ -111,12 +112,10 @@ distribution.</p>
 </dl>
 <p class="rubric">Examples</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">sparsembar</span> <span class="k">as</span> <span class="nn">smbar</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">smbar</span><span class="o">.</span><span class="n">MultiGaussian</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">1234</span>
-<span class="gp">... </span><span class="p">)</span><span class="o">.</span><span class="n">draw_samples</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">smbar</span><span class="o">.</span><span class="n">MultiGaussian</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">draw_samples</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
 <span class="go">(10, 3, 1)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">smbar</span><span class="o">.</span><span class="n">MultiGaussian</span><span class="p">(</span>
-<span class="gp">... </span>    <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)],</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">1234</span>
+<span class="gp">... </span>    <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)],</span> <span class="mf">1.0</span>
 <span class="gp">... </span><span class="p">)</span><span class="o">.</span><span class="n">draw_samples</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span>
 <span class="go">(5, 3, 2)</span>
 </pre></div>
@@ -172,7 +171,7 @@ format with shape <span class="math notranslate nohighlight">\((K, K, N)\)</span
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">pytest</span> <span class="kn">import</span> <span class="n">approx</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">sparsembar</span> <span class="k">as</span> <span class="nn">smbar</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">means</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">multigaussian</span> <span class="o">=</span> <span class="n">smbar</span><span class="o">.</span><span class="n">MultiGaussian</span><span class="p">(</span><span class="n">means</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">1234</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">multigaussian</span> <span class="o">=</span> <span class="n">smbar</span><span class="o">.</span><span class="n">MultiGaussian</span><span class="p">(</span><span class="n">means</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">samples</span> <span class="o">=</span> <span class="n">multigaussian</span><span class="o">.</span><span class="n">draw_samples</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">samples</span><span class="o">.</span><span class="n">shape</span>
 <span class="go">(10, 4, 3)</span>
