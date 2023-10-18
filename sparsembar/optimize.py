@@ -1,0 +1,78 @@
+"""
+.. module:: optimize
+   :platform: Linux, MacOS
+   :synopsis: A module for handling optimization algorithms.
+
+.. moduleauthor:: Charlles Abreu <craabreu@gmail.com>
+"""
+
+import typing as t
+
+from jax import numpy as jnp
+from jax.scipy import optimize as jax_optimize
+from scipy import optimize as scipy_optimize
+
+_METHODS_THAT_REQUIRE_HESSIAN = [
+    "Newton-CG",
+    "dogleg",
+    "trust-ncg",
+    "trust-krylov",
+    "trust-exact",
+    "trust-constr",
+]
+
+
+def argmin(
+    objective_function: t.Callable,
+    initial_guess: jnp.ndarray,
+    *args,
+    method: str = "BFGS",
+    tolerance: float = 1e-12,
+    allow_unconverged: bool = True,
+    jac: t.Callable,
+    hess: t.Callable,
+    **kwargs,
+) -> jnp.ndarray:
+    """
+    Minimize a function using a specified method and return the argument that
+    minimizes the function.
+
+    Parameters
+    ----------
+    fun
+        The function to be minimized.
+    x0
+        The initial guess.
+    args
+        Additional arguments to be passed to the function.
+    method
+        The minimization method to use. The options are the same as for
+        :func:`scipy.optimize.minimize`.
+    tolerance
+        The tolerance for termination. When specified, the selected minimization
+        algorithm sets some relevant solver-specific tolerance(s) equal to this
+        value.
+    allow_unconverged
+        Whether to allow unconverged minimization results due to precision loss.
+    jac
+        The Jacobian of `fun`.
+    hess
+        The Hessian of `fun`.
+
+    Returns
+    -------
+    scipy_minimize.OptimizeResult
+        The optimization result represented as a ``OptimizeResult`` object.
+    """
+    kwargs = {**kwargs, "method": method, "tol": tolerance}
+    if method == "BFGS":
+        optimize = jax_optimize
+    else:
+        kwargs["jac"] = jac
+        if method in _METHODS_THAT_REQUIRE_HESSIAN:
+            kwargs["hess"] = hess
+        optimize = scipy_optimize
+    result = optimize.minimize(objective_function, initial_guess, args, **kwargs)
+    if not (result.success or (result.status == 2 and allow_unconverged)):
+        raise ValueError(result.message)
+    return jnp.array(result.x)

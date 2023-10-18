@@ -12,7 +12,8 @@ import jax
 from jax import numpy as jnp
 from jax.config import config as jax_config
 from jax.scipy import special
-from scipy import optimize
+
+from .optimize import argmin
 
 jax_config.update("jax_enable_x64", True)
 
@@ -197,20 +198,27 @@ class StateGroup:
         return self._sample_sizes
 
     def compute_free_energies(
-        self, tolerance=1e-10, allow_unconverged: bool = False, **kwargs
+        self, method="BFGS", tolerance=1e-12, allow_unconverged: bool = True, **kwargs
     ) -> jnp.ndarray:
         """
         Return the free energies of the states.
 
         Parameters
         ----------
+        method
+            The minimization method to use. The options are the same as for
+            :func:`scipy.optimize.minimize`.
         tolerance
             The tolerance for termination. When specified, the selected minimization
             algorithm sets some relevant solver-specific tolerance(s) equal to this
             value.
+        allow_unconverged
+            Whether to allow unconverged minimization results due to lack of numerical
+            precision.
         **kwargs
             Additional keyword arguments that will be passed to the
-            :func:`scipy.optimize.minimize` function.
+            :func:`scipy.optimize.minimize` function, except for ``method``, ``tol``,
+            ``jac`` and ``hess``.
 
         Returns
         -------
@@ -232,16 +240,21 @@ class StateGroup:
         >>> mbar = MBAR(state_group.potentials, state_group.sample_sizes)
         >>> fe_diffs, _ = mbar.getFreeEnergyDifferences()
         >>> assert allclose(free_energies, fe_diffs[0, :])
+        >>> state_group.compute_free_energies(method="SLSQP")
+        Array([...], dtype=float64)
+        >>> state_group.compute_free_energies(method="Newton-CG")
+        Array([...], dtype=float64)
         """
-        result = optimize.minimize(
+        xmin = argmin(
             mbar_negative_log_likelihood,
             jnp.zeros(len(self._states) - 1),
-            (self._potentials, self._sample_sizes),
+            self._potentials,
+            self._sample_sizes,
+            method=method,
+            tol=tolerance,
+            allow_unconverged=allow_unconverged,
             jac=mbar_gradient,
             hess=mbar_hessian,
-            tol=tolerance,
             **kwargs,
         )
-        if not (result.success or allow_unconverged):
-            raise ValueError(result.message)
-        return jnp.insert(result.x, 0, 0)
+        return jnp.insert(xmin, 0, 0.0)
