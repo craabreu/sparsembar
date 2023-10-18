@@ -8,12 +8,53 @@
 
 import typing as t
 
+import jax
 from jax import numpy as jnp
+from jax.scipy import special
+
+from .optimize import argmin
+
+
+@jax.jit
+def mbar_negative_log_likelihood(
+    free_energies: jnp.ndarray,
+    potentials: jnp.ndarray,
+    sample_sizes: jnp.ndarray,
+) -> float:
+    """
+    Compute the likelihood function that is maximized by the MBAR estimator.
+
+    Parameters
+    ----------
+    free_energies
+        The reduced free energy estimates for all states except the first one. The
+        shape of this array is :math:`(K-1,)`, where :math:`K` is the number of
+        states.
+    potentials
+        The reduced potential matrix, whose element :math:`u_{k,n}` is the reduced
+        potential of the :math:`n`-th sample evaluated in the :math:`k`-th state,
+        independently of which state it belongs to. The shape of this matrix is
+        :math:`(K, N_{\\rm sum})`, where :math:`N_{\\rm sum} = \\sum_{i=0}^{K-1}
+        N_i` and :math:`N_i` is the number of samples drawn from state :math:`i`.
+    sample_sizes
+        The number of samples drawn from each state, whose shape is :math:`(K,)`.
+    """
+
+    all_free_energies = jnp.insert(free_energies, 0, 0.0)
+    return special.logsumexp(
+        all_free_energies - potentials.T,
+        b=sample_sizes,
+        axis=1,
+    ).sum() - jnp.dot(sample_sizes, all_free_energies)
+
+
+mbar_gradient = jax.grad(mbar_negative_log_likelihood)
+mbar_hessian = jax.hessian(mbar_negative_log_likelihood)
 
 
 class StateGroup:
     """
-    A class for representing a group of states.
+    A class for representing a group of states with sampled configurations.
 
     Parameters
     ----------
@@ -46,7 +87,7 @@ class StateGroup:
     --------
     >>> import sparsembar as smbar
     >>> means = [0, 1, 2]
-    >>> model = smbar.MultiGaussian(means, 1, 123)
+    >>> model = smbar.MultiGaussian(means, 1)
     >>> samples = model.draw_samples(100)
     >>> matrix = model.compute_reduced_potentials(samples)
     >>> state_group = smbar.StateGroup(means, matrix)
@@ -152,3 +193,66 @@ class StateGroup:
     def sample_sizes(self) -> jnp.ndarray:
         """The number of samples drawn from each state in the group."""
         return self._sample_sizes
+
+    def compute_free_energies(
+        self, method="BFGS", tolerance=1e-12, allow_unconverged: bool = True, **kwargs
+    ) -> jnp.ndarray:
+        """
+        Return the free energies of the states.
+
+        Parameters
+        ----------
+        method
+            The minimization method to use. The options are the same as for
+            :func:`scipy.optimize.minimize`.
+        tolerance
+            The tolerance for termination. When specified, the selected minimization
+            algorithm sets some relevant solver-specific tolerance(s) equal to this
+            value.
+        allow_unconverged
+            Whether to allow unconverged minimization results due to lack of numerical
+            precision.
+        **kwargs
+            Additional keyword arguments that will be passed to the
+            :func:`scipy.optimize.minimize` function, except for ``method``, ``tol``,
+            ``jac`` and ``hess``.
+
+        Returns
+        -------
+        jnp.ndarray
+            The free energies of the states.
+
+        Examples
+        --------
+        >>> import sparsembar as smbar
+        >>> from pymbar import MBAR
+        >>> from numpy import allclose
+        >>> model = smbar.MultiGaussian([0, 1, 2], [1, 2, 3], seed=1)
+        >>> samples = model.draw_samples(100)
+        >>> potentials = model.compute_reduced_potentials(samples)
+        >>> state_group = smbar.StateGroup([0, 1, 2], potentials)
+        >>> free_energies = state_group.compute_free_energies()
+        >>> free_energies
+        Array([...], dtype=float64)
+        >>> mbar = MBAR(state_group.potentials, state_group.sample_sizes)
+        >>> result = mbar.compute_free_energy_differences()
+        >>> assert allclose(free_energies, result["Delta_f"][0, :])
+        >>> # Using other minimization methods:
+        >>> state_group.compute_free_energies(method="SLSQP")
+        Array([...], dtype=float64)
+        >>> state_group.compute_free_energies(method="Newton-CG")
+        Array([...], dtype=float64)
+        """
+        xmin = argmin(
+            mbar_negative_log_likelihood,
+            jnp.zeros(len(self._states) - 1),
+            self._potentials,
+            self._sample_sizes,
+            method=method,
+            tol=tolerance,
+            allow_unconverged=allow_unconverged,
+            jac=mbar_gradient,
+            hess=mbar_hessian,
+            **kwargs,
+        )
+        return jnp.insert(xmin, 0, 0.0)
