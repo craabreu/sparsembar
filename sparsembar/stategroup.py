@@ -197,7 +197,7 @@ class StateGroup:
         return self._sample_sizes
 
     def compute_free_energies(
-        self, tolerance=1e-12, allow_unconverged: bool = False, **kwargs
+        self, tolerance=1e-10, allow_unconverged: bool = False, **kwargs
     ) -> jnp.ndarray:
         """
         Return the free energies of the states.
