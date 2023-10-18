@@ -9,10 +9,10 @@
 import typing as t
 
 import jax
-from jax import config, numpy as jnp
+from jax import config
+from jax import numpy as jnp
 from jax.scipy import special
 from scipy import optimize
-
 
 config.update("jax_enable_x64", True)
 
