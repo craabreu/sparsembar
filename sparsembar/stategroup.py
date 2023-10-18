@@ -238,8 +238,9 @@ class StateGroup:
         >>> free_energies
         Array([...], dtype=float64)
         >>> mbar = MBAR(state_group.potentials, state_group.sample_sizes)
-        >>> fe_diffs, _ = mbar.getFreeEnergyDifferences()
-        >>> assert allclose(free_energies, fe_diffs[0, :])
+        >>> result = mbar.compute_free_energy_differences()
+        >>> assert allclose(free_energies, result["Delta_f"][0, :])
+        >>> # Using other minimization methods:
         >>> state_group.compute_free_energies(method="SLSQP")
         Array([...], dtype=float64)
         >>> state_group.compute_free_energies(method="Newton-CG")
