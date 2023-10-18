@@ -6,6 +6,7 @@ dependencies:
   - python
   - pip
   - jax
+  - pymbar
 
     # Conda build
   - anaconda-client
