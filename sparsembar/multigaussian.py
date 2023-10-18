@@ -6,6 +6,7 @@
 .. moduleauthor:: Charlles Abreu <craabreu@gmail.com>
 """
 
+import random
 import typing as t
 from functools import partial
 
@@ -96,20 +97,22 @@ class MultiGaussian:
         The standard deviation of the Gaussian distributions. If a single value is
         passed, all distributions have the same standard deviation.
     seed
-        A seed for the pseudo-random number generator.
+        A seed for the pseudo-random number generator. If not provided, a
+        system-generated random seed will be used.
 
     Examples
     --------
     >>> import sparsembar as smbar
-    >>> smbar.MultiGaussian([0, 1, 2], 1.0, 1234)
-    MultiGaussian(means=[(0,), (1,), (2,)], sigmas=[1. 1. 1.], seed=1234)
+    >>> smbar.MultiGaussian([0, 1, 2], 1.0)
+    MultiGaussian(means=[(0,), (1,), (2,)], sigmas=[1. 1. 1.], seed=...)
     """
 
     def __init__(
         self,
         means: t.Sequence[t.Union[int, t.Tuple[int, ...]]],
         sigmas: t.Union[float, t.Sequence[float]],
-        seed: int,
+        *,
+        seed: t.Optional[int] = None,
     ) -> None:
         def are_all(item_type):
             return lambda seq: all(isinstance(x, item_type) for x in seq)
@@ -136,8 +139,8 @@ class MultiGaussian:
             raise ValueError("Each sigma must be a float or a sequence of floats.")
         if any(self._sigmas <= 0.0):
             raise ValueError("All sigmas must be positive.")
-        self._seed = seed
-        self._prng_key = jax.random.PRNGKey(seed)
+        self._seed = random.SystemRandom().randrange(2**32) if seed is None else seed
+        self._prng_key = jax.random.PRNGKey(self._seed)
 
     def __repr__(self) -> str:
         return (
@@ -196,12 +199,10 @@ class MultiGaussian:
         Examples
         --------
         >>> import sparsembar as smbar
-        >>> smbar.MultiGaussian(
-        ...     [0, 1, 2], 1.0, 1234
-        ... ).draw_samples(10).shape
+        >>> smbar.MultiGaussian([0, 1, 2], 1).draw_samples(10).shape
         (10, 3, 1)
         >>> smbar.MultiGaussian(
-        ...     [(0, 0), (0, 1), (1, 1)], 1.0, 1234
+        ...     [(0, 0), (0, 1), (1, 1)], 1.0
         ... ).draw_samples(5).shape
         (5, 3, 2)
         """
@@ -261,7 +262,7 @@ class MultiGaussian:
         >>> from pytest import approx
         >>> import sparsembar as smbar
         >>> means = [(0, 0, 0), (0, 0, 1), (0, 1, 1), (1, 1, 1)]
-        >>> multigaussian = smbar.MultiGaussian(means, 1.0, 1234)
+        >>> multigaussian = smbar.MultiGaussian(means, 1.0)
         >>> samples = multigaussian.draw_samples(10)
         >>> samples.shape
         (10, 4, 3)

@@ -9,6 +9,8 @@
 
 import typing as t
 
+from jax import numpy as jnp
+
 from .stategroup import StateGroup
 
 
@@ -21,8 +23,10 @@ class SparseMBAR:  # pylint: disable=too-few-public-methods
     --------
     >>> import sparsembar as smbar
     >>> state_id_lists = [0, 1, 2], [2, 3, 4]
-    >>> models = [smbar.MultiGaussian(ids, 1, 123) for ids in state_id_lists]
-    >>> samples = [model.draw_samples(100) for model in models]
+    >>> models = [
+    ...     smbar.MultiGaussian(state_ids, 1)
+    ...     for state_ids in state_id_lists
+    ... ]
     >>> potentials = [
     ...     model.compute_reduced_potentials(model.draw_samples(100))
     ...     for model in models
@@ -31,16 +35,29 @@ class SparseMBAR:  # pylint: disable=too-few-public-methods
     ...     smbar.StateGroup(ids, matrix)
     ...     for ids, matrix in zip(state_id_lists, potentials)
     ... )
-    >>> sorted(estimator.states)
+    >>> states = sorted(estimator.all_states)
+    >>> states
     [0, 1, 2, 3, 4]
+    >>> [estimator.groups_with_state(state) for state in states]
+    [[0], [0], [0, 1], [1], [1]]
     """
 
     def __init__(self, state_groups: t.Iterable[StateGroup]) -> None:
-        self._state_groups = list(state_groups)
-        self._states = {state for group in self._state_groups for state in group.states}
+        self._groups = list(state_groups)
+        self._all_states = {state for group in self._groups for state in group.states}
+        self._groups_with_state = {
+            state: jnp.array(
+                [
+                    index
+                    for index, group in enumerate(self._groups)
+                    if state in group.states
+                ]
+            )
+            for state in self._all_states
+        }
 
     @property
-    def states(self) -> set:
+    def all_states(self) -> set:
         """
         Return the set of states in the groups.
 
@@ -50,4 +67,15 @@ class SparseMBAR:  # pylint: disable=too-few-public-methods
             The set of states in the groups.
 
         """
-        return self._states
+        return self._all_states
+
+    @property
+    def groups(self) -> t.List[StateGroup]:
+        """The list of state groups."""
+        return self._groups
+
+    def groups_with_state(self, state: t.Hashable) -> int:
+        """The index of the state groups with the given state."""
+        if state not in self._all_states:
+            raise ValueError(f"Unknown state {state}")
+        return self._groups_with_state[state].tolist()
