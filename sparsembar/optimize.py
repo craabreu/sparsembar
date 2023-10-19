@@ -9,8 +9,7 @@
 import typing as t
 
 from jax import numpy as jnp
-from jax.scipy import optimize as jax_optimize
-from scipy import optimize as scipy_optimize
+from scipy import optimize
 
 _METHODS_THAT_REQUIRE_HESSIAN = [
     "Newton-CG",
@@ -64,14 +63,9 @@ def argmin(
     scipy_minimize.OptimizeResult
         The optimization result represented as a ``OptimizeResult`` object.
     """
-    kwargs = {**kwargs, "method": method, "tol": tolerance}
-    if method == "BFGS":
-        optimize = jax_optimize
-    else:
-        kwargs["jac"] = jac
-        if method in _METHODS_THAT_REQUIRE_HESSIAN:
-            kwargs["hess"] = hess
-        optimize = scipy_optimize
+    kwargs = {**kwargs, "method": method, "tol": tolerance, "jac": jac}
+    if method in _METHODS_THAT_REQUIRE_HESSIAN:
+        kwargs["hess"] = hess
     result = optimize.minimize(objective_function, initial_guess, args, **kwargs)
     if not (result.success or (result.status == 2 and allow_unconverged)):
         raise ValueError(result.message)
