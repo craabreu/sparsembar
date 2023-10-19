@@ -9,8 +9,6 @@
 
 import typing as t
 
-from jax import numpy as jnp
-
 from .stategroup import StateGroup
 
 
@@ -35,26 +33,27 @@ class SparseMBAR:  # pylint: disable=too-few-public-methods
     ...     smbar.StateGroup(ids, matrix)
     ...     for ids, matrix in zip(state_id_lists, potentials)
     ... )
-    >>> states = sorted(estimator.all_states)
+    >>> states = estimator.all_states
     >>> states
-    [0, 1, 2, 3, 4]
+    (0, 1, 2, 3, 4)
     >>> [estimator.groups_with_state(state) for state in states]
-    [[0], [0], [0, 1], [1], [1]]
+    [(0,), (0,), (0, 1), (1,), (1,)]
     """
 
     def __init__(self, state_groups: t.Iterable[StateGroup]) -> None:
         self._groups = list(state_groups)
-        self._all_states = {state for group in self._groups for state in group.states}
-        self._groups_with_state = {
-            state: jnp.array(
-                [
-                    index
-                    for index, group in enumerate(self._groups)
-                    if state in group.states
-                ]
-            )
-            for state in self._all_states
-        }
+        self._num_groups = len(self._groups)
+        self._groups_with_state = {}
+        for index, group in enumerate(self._groups):
+            for state in group.states:
+                if state not in self._groups_with_state:
+                    self._groups_with_state[state] = ()
+                self._groups_with_state[state] += (index,)
+        self._all_states = tuple(self._groups_with_state)
+        self._num_states = len(self._all_states)
+        self._independent_free_energies = tuple(
+            group.get_free_energies() for group in self._groups
+        )
 
     @property
     def all_states(self) -> set:
@@ -76,6 +75,6 @@ class SparseMBAR:  # pylint: disable=too-few-public-methods
 
     def groups_with_state(self, state: t.Hashable) -> int:
         """The index of the state groups with the given state."""
-        if state not in self._all_states:
+        if state not in self._groups_with_state:
             raise ValueError(f"Unknown state {state}")
-        return self._groups_with_state[state].tolist()
+        return self._groups_with_state[state]
