@@ -82,6 +82,19 @@ class StateGroup:
         it will be assumed that all states have the same number of samples and
         this number will be inferred from the shape of the reduced potential
         matrix.
+    method
+        The minimization method to use for free energy calculation. The options are the
+        same as for :func:`scipy.optimize.minimize`.
+    tolerance
+        The tolerance for termination of the minimization. Each method sets some
+        relevant solver-specific tolerance(s) equal to this value.
+    allow_unconverged
+        Whether to allow unconverged minimization results due to lack of numerical
+        precision.
+    **kwargs
+        Additional keyword arguments that will be passed to the
+        :func:`scipy.optimize.minimize` function, except for ``method``, ``tol``,
+        ``jac`` and ``hess``.
 
     Examples
     --------
@@ -99,6 +112,8 @@ class StateGroup:
     ... )
     >>> state_group
     StateGroup(states=[0, 1, 2], sample_sizes=[ 80  90 100])
+    >>> state_group.get_free_energies()
+    Array([...], dtype=float64)
     """
 
     def __init__(
@@ -106,24 +121,22 @@ class StateGroup:
         states: t.Sequence[t.Hashable],
         potentials: jnp.ndarray,
         sample_sizes: t.Optional[t.Sequence[int]] = None,
+        *,
+        method: str = "BFGS",
+        tolerance: float = 1e-12,
+        allow_unconverged: bool = True,
+        **kwargs,
     ) -> None:
         num_states = len(states)
         shape = potentials.shape
         ndim = len(shape)
         self._validate_input(num_states, shape, ndim, sample_sizes)
         self._states = states
-        self._sample_sizes = self._get_sample_sizes_array(
-            num_states,
-            shape,
-            ndim,
-            sample_sizes,
-        )
-        self._potentials = self._get_potentials_array(
-            num_states,
-            shape,
-            ndim,
-            sample_sizes,
-            potentials,
+        args = (num_states, shape, ndim, sample_sizes)
+        self._sample_sizes = self._get_sample_sizes_array(*args)
+        self._potentials = self._get_potentials_array(*args, potentials)
+        self._free_energies = self._compute_free_energies(
+            method, tolerance, allow_unconverged, **kwargs
         )
 
     def __repr__(self) -> str:
@@ -179,6 +192,27 @@ class StateGroup:
             return jnp.reshape(potentials, (num_states, -1))
         return jnp.array(potentials)
 
+    def _compute_free_energies(
+        self,
+        method: str,
+        tolerance: float,
+        allow_unconverged: bool,
+        **kwargs,
+    ) -> jnp.ndarray:
+        xmin = argmin(
+            mbar_negative_log_likelihood,
+            jnp.zeros(len(self._states) - 1),
+            self._potentials,
+            self._sample_sizes,
+            method=method,
+            tol=tolerance,
+            allow_unconverged=allow_unconverged,
+            jac=mbar_gradient,
+            hess=mbar_hessian,
+            **kwargs,
+        )
+        return jnp.insert(xmin, 0, 0.0)
+
     @property
     def states(self) -> t.Sequence[t.Hashable]:
         """The states in the group."""
@@ -194,33 +228,23 @@ class StateGroup:
         """The number of samples drawn from each state in the group."""
         return self._sample_sizes
 
-    def compute_free_energies(
-        self, method="BFGS", tolerance=1e-12, allow_unconverged: bool = True, **kwargs
-    ) -> jnp.ndarray:
+    def get_free_energies(
+        self, return_dict: bool = False
+    ) -> t.Union[t.Dict[t.Hashable, float], jnp.ndarray]:
         """
         Return the free energies of the states.
 
         Parameters
         ----------
-        method
-            The minimization method to use. The options are the same as for
-            :func:`scipy.optimize.minimize`.
-        tolerance
-            The tolerance for termination. When specified, the selected minimization
-            algorithm sets some relevant solver-specific tolerance(s) equal to this
-            value.
-        allow_unconverged
-            Whether to allow unconverged minimization results due to lack of numerical
-            precision.
-        **kwargs
-            Additional keyword arguments that will be passed to the
-            :func:`scipy.optimize.minimize` function, except for ``method``, ``tol``,
-            ``jac`` and ``hess``.
+        return_dict
+            Whether to return a dictionary of free energies with the states as keys.
 
         Returns
         -------
-        jnp.ndarray
-            The free energies of the states.
+        t.Union[t.Dict[t.Hashable, float], jnp.ndarray]
+            The reduced free energies of the states. If ``return_dict`` is ``True``,
+            the return value is a dictionary of free energies with the states as keys.
+            Otherwise, it is an array of free energies.
 
         Examples
         --------
@@ -230,29 +254,16 @@ class StateGroup:
         >>> model = smbar.MultiGaussian([0, 1, 2], [1, 2, 3], seed=1)
         >>> samples = model.draw_samples(100)
         >>> potentials = model.compute_reduced_potentials(samples)
-        >>> state_group = smbar.StateGroup([0, 1, 2], potentials)
-        >>> free_energies = state_group.compute_free_energies()
+        >>> state_group = smbar.StateGroup([0, 1, 2], potentials, method="Newton-CG")
+        >>> free_energies = state_group.get_free_energies()
         >>> free_energies
         Array([...], dtype=float64)
         >>> mbar = MBAR(state_group.potentials, state_group.sample_sizes)
         >>> result = mbar.compute_free_energy_differences()
         >>> assert allclose(free_energies, result["Delta_f"][0, :])
-        >>> # Using other minimization methods:
-        >>> state_group.compute_free_energies(method="SLSQP")
-        Array([...], dtype=float64)
-        >>> state_group.compute_free_energies(method="Newton-CG")
-        Array([...], dtype=float64)
         """
-        xmin = argmin(
-            mbar_negative_log_likelihood,
-            jnp.zeros(len(self._states) - 1),
-            self._potentials,
-            self._sample_sizes,
-            method=method,
-            tol=tolerance,
-            allow_unconverged=allow_unconverged,
-            jac=mbar_gradient,
-            hess=mbar_hessian,
-            **kwargs,
+        return (
+            dict(zip(self._states, self._free_energies))
+            if return_dict
+            else self._free_energies
         )
-        return jnp.insert(xmin, 0, 0.0)
