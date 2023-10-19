@@ -119,6 +119,19 @@
 <span class="sd">        it will be assumed that all states have the same number of samples and</span>
 <span class="sd">        this number will be inferred from the shape of the reduced potential</span>
 <span class="sd">        matrix.</span>
+<span class="sd">    method</span>
+<span class="sd">        The minimization method to use for free energy calculation. The options are the</span>
+<span class="sd">        same as for :func:`scipy.optimize.minimize`.</span>
+<span class="sd">    tolerance</span>
+<span class="sd">        The tolerance for termination of the minimization. Each method sets some</span>
+<span class="sd">        relevant solver-specific tolerance(s) equal to this value.</span>
+<span class="sd">    allow_unconverged</span>
+<span class="sd">        Whether to allow unconverged minimization results due to lack of numerical</span>
+<span class="sd">        precision.</span>
+<span class="sd">    **kwargs</span>
+<span class="sd">        Additional keyword arguments that will be passed to the</span>
+<span class="sd">        :func:`scipy.optimize.minimize` function, except for ``method``, ``tol``,</span>
+<span class="sd">        ``jac`` and ``hess``.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
@@ -136,6 +149,8 @@
 <span class="sd">    ... )</span>
 <span class="sd">    &gt;&gt;&gt; state_group</span>
 <span class="sd">    StateGroup(states=[0, 1, 2], sample_sizes=[ 80  90 100])</span>
+<span class="sd">    &gt;&gt;&gt; state_group.get_free_energies()</span>
+<span class="sd">    Array([...], dtype=float64)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -143,24 +158,22 @@
         <span class="n">states</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Hashable</span><span class="p">],</span>
         <span class="n">potentials</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
         <span class="n">sample_sizes</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Optional</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;BFGS&quot;</span><span class="p">,</span>
+        <span class="n">tolerance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-12</span><span class="p">,</span>
+        <span class="n">allow_unconverged</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">num_states</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">states</span><span class="p">)</span>
         <span class="n">shape</span> <span class="o">=</span> <span class="n">potentials</span><span class="o">.</span><span class="n">shape</span>
         <span class="n">ndim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_validate_input</span><span class="p">(</span><span class="n">num_states</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">ndim</span><span class="p">,</span> <span class="n">sample_sizes</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_states</span> <span class="o">=</span> <span class="n">states</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_sample_sizes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_sample_sizes_array</span><span class="p">(</span>
-            <span class="n">num_states</span><span class="p">,</span>
-            <span class="n">shape</span><span class="p">,</span>
-            <span class="n">ndim</span><span class="p">,</span>
-            <span class="n">sample_sizes</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_potentials</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_potentials_array</span><span class="p">(</span>
-            <span class="n">num_states</span><span class="p">,</span>
-            <span class="n">shape</span><span class="p">,</span>
-            <span class="n">ndim</span><span class="p">,</span>
-            <span class="n">sample_sizes</span><span class="p">,</span>
-            <span class="n">potentials</span><span class="p">,</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">(</span><span class="n">num_states</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">ndim</span><span class="p">,</span> <span class="n">sample_sizes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sample_sizes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_sample_sizes_array</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_potentials</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_potentials_array</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">potentials</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_free_energies</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_free_energies</span><span class="p">(</span>
+            <span class="n">method</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">,</span> <span class="n">allow_unconverged</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
@@ -216,6 +229,27 @@
             <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">potentials</span><span class="p">,</span> <span class="p">(</span><span class="n">num_states</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
         <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">potentials</span><span class="p">)</span>
 
+    <span class="k">def</span> <span class="nf">_compute_free_energies</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">tolerance</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">allow_unconverged</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="n">xmin</span> <span class="o">=</span> <span class="n">argmin</span><span class="p">(</span>
+            <span class="n">mbar_negative_log_likelihood</span><span class="p">,</span>
+            <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_states</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_potentials</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_sample_sizes</span><span class="p">,</span>
+            <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span>
+            <span class="n">tol</span><span class="o">=</span><span class="n">tolerance</span><span class="p">,</span>
+            <span class="n">allow_unconverged</span><span class="o">=</span><span class="n">allow_unconverged</span><span class="p">,</span>
+            <span class="n">jac</span><span class="o">=</span><span class="n">mbar_gradient</span><span class="p">,</span>
+            <span class="n">hess</span><span class="o">=</span><span class="n">mbar_hessian</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">xmin</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">states</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Sequence</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Hashable</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;The states in the group.&quot;&quot;&quot;</span>
@@ -231,35 +265,25 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;The number of samples drawn from each state in the group.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sample_sizes</span>
 
-<div class="viewcode-block" id="StateGroup.compute_free_energies">
-<a class="viewcode-back" href="../../api/StateGroup.html#sparsembar.StateGroup.compute_free_energies">[docs]</a>
-    <span class="k">def</span> <span class="nf">compute_free_energies</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;BFGS&quot;</span><span class="p">,</span> <span class="n">tolerance</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">,</span> <span class="n">allow_unconverged</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<div class="viewcode-block" id="StateGroup.get_free_energies">
+<a class="viewcode-back" href="../../api/StateGroup.html#sparsembar.StateGroup.get_free_energies">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_free_energies</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">return_dict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Dict</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Hashable</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Return the free energies of the states.</span>
 
 <span class="sd">        Parameters</span>
 <span class="sd">        ----------</span>
-<span class="sd">        method</span>
-<span class="sd">            The minimization method to use. The options are the same as for</span>
-<span class="sd">            :func:`scipy.optimize.minimize`.</span>
-<span class="sd">        tolerance</span>
-<span class="sd">            The tolerance for termination. When specified, the selected minimization</span>
-<span class="sd">            algorithm sets some relevant solver-specific tolerance(s) equal to this</span>
-<span class="sd">            value.</span>
-<span class="sd">        allow_unconverged</span>
-<span class="sd">            Whether to allow unconverged minimization results due to lack of numerical</span>
-<span class="sd">            precision.</span>
-<span class="sd">        **kwargs</span>
-<span class="sd">            Additional keyword arguments that will be passed to the</span>
-<span class="sd">            :func:`scipy.optimize.minimize` function, except for ``method``, ``tol``,</span>
-<span class="sd">            ``jac`` and ``hess``.</span>
+<span class="sd">        return_dict</span>
+<span class="sd">            Whether to return a dictionary of free energies with the states as keys.</span>
 
 <span class="sd">        Returns</span>
 <span class="sd">        -------</span>
-<span class="sd">        jnp.ndarray</span>
-<span class="sd">            The free energies of the states.</span>
+<span class="sd">        t.Union[t.Dict[t.Hashable, float], jnp.ndarray]</span>
+<span class="sd">            The reduced free energies of the states. If ``return_dict`` is ``True``,</span>
+<span class="sd">            the return value is a dictionary of free energies with the states as keys.</span>
+<span class="sd">            Otherwise, it is an array of free energies.</span>
 
 <span class="sd">        Examples</span>
 <span class="sd">        --------</span>
@@ -269,32 +293,19 @@
 <span class="sd">        &gt;&gt;&gt; model = smbar.MultiGaussian([0, 1, 2], [1, 2, 3], seed=1)</span>
 <span class="sd">        &gt;&gt;&gt; samples = model.draw_samples(100)</span>
 <span class="sd">        &gt;&gt;&gt; potentials = model.compute_reduced_potentials(samples)</span>
-<span class="sd">        &gt;&gt;&gt; state_group = smbar.StateGroup([0, 1, 2], potentials)</span>
-<span class="sd">        &gt;&gt;&gt; free_energies = state_group.compute_free_energies()</span>
+<span class="sd">        &gt;&gt;&gt; state_group = smbar.StateGroup([0, 1, 2], potentials, method=&quot;Newton-CG&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; free_energies = state_group.get_free_energies()</span>
 <span class="sd">        &gt;&gt;&gt; free_energies</span>
 <span class="sd">        Array([...], dtype=float64)</span>
 <span class="sd">        &gt;&gt;&gt; mbar = MBAR(state_group.potentials, state_group.sample_sizes)</span>
 <span class="sd">        &gt;&gt;&gt; result = mbar.compute_free_energy_differences()</span>
 <span class="sd">        &gt;&gt;&gt; assert allclose(free_energies, result[&quot;Delta_f&quot;][0, :])</span>
-<span class="sd">        &gt;&gt;&gt; # Using other minimization methods:</span>
-<span class="sd">        &gt;&gt;&gt; state_group.compute_free_energies(method=&quot;SLSQP&quot;)</span>
-<span class="sd">        Array([...], dtype=float64)</span>
-<span class="sd">        &gt;&gt;&gt; state_group.compute_free_energies(method=&quot;Newton-CG&quot;)</span>
-<span class="sd">        Array([...], dtype=float64)</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">xmin</span> <span class="o">=</span> <span class="n">argmin</span><span class="p">(</span>
-            <span class="n">mbar_negative_log_likelihood</span><span class="p">,</span>
-            <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_states</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_potentials</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_sample_sizes</span><span class="p">,</span>
-            <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span>
-            <span class="n">tol</span><span class="o">=</span><span class="n">tolerance</span><span class="p">,</span>
-            <span class="n">allow_unconverged</span><span class="o">=</span><span class="n">allow_unconverged</span><span class="p">,</span>
-            <span class="n">jac</span><span class="o">=</span><span class="n">mbar_gradient</span><span class="p">,</span>
-            <span class="n">hess</span><span class="o">=</span><span class="n">mbar_hessian</span><span class="p">,</span>
-            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">xmin</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_states</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_free_energies</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">return_dict</span>
+            <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_free_energies</span>
+        <span class="p">)</span></div>
 </div>
 
 </pre></div>
