@@ -28,8 +28,8 @@ def argmin(
     method: str = "BFGS",
     tolerance: float = 1e-12,
     allow_unconverged: bool = True,
-    jac: t.Callable,
-    hess: t.Callable,
+    jac: t.Optional[t.Callable] = None,
+    hess: t.Optional[t.Callable] = None,
     **kwargs,
 ) -> jnp.ndarray:
     """
@@ -60,8 +60,8 @@ def argmin(
 
     Returns
     -------
-    scipy_minimize.OptimizeResult
-        The optimization result represented as a ``OptimizeResult`` object.
+    jnp.ndarray
+        The optimization result.
     """
     kwargs = {**kwargs, "method": method, "tol": tolerance, "jac": jac}
     if method in _METHODS_THAT_REQUIRE_HESSIAN:
