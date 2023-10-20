@@ -7,6 +7,7 @@
 """
 
 import typing as t
+from functools import partial
 
 import jax
 from jax import numpy as jnp
@@ -15,37 +16,21 @@ from jax.scipy import special
 from .optimize import argmin
 
 
-@jax.jit
+@partial(jax.jit, static_argnames=("prepend_zero",))
 def mbar_negative_log_likelihood(
     free_energies: jnp.ndarray,
     potentials: jnp.ndarray,
     sample_sizes: jnp.ndarray,
+    prepend_zero: bool = True,
 ) -> float:
-    """
-    Compute the likelihood function that is maximized by the MBAR estimator.
-
-    Parameters
-    ----------
-    free_energies
-        The reduced free energy estimates for all states except the first one. The
-        shape of this array is :math:`(K-1,)`, where :math:`K` is the number of
-        states.
-    potentials
-        The reduced potential matrix, whose element :math:`u_{k,n}` is the reduced
-        potential of the :math:`n`-th sample evaluated in the :math:`k`-th state,
-        independently of which state it belongs to. The shape of this matrix is
-        :math:`(K, N_{\\rm sum})`, where :math:`N_{\\rm sum} = \\sum_{i=0}^{K-1}
-        N_i` and :math:`N_i` is the number of samples drawn from state :math:`i`.
-    sample_sizes
-        The number of samples drawn from each state, whose shape is :math:`(K,)`.
-    """
-
-    all_free_energies = jnp.insert(free_energies, 0, 0.0)
+    """The negative of the log-likelihood function that is maximized by the MBAR"""
+    if prepend_zero:
+        free_energies = jnp.insert(free_energies, 0, 0.0)
     return special.logsumexp(
-        all_free_energies - potentials.T,
+        free_energies - potentials.T,
         b=sample_sizes,
         axis=1,
-    ).sum() - jnp.dot(sample_sizes, all_free_energies)
+    ).sum() - jnp.dot(sample_sizes, free_energies)
 
 
 mbar_gradient = jax.grad(mbar_negative_log_likelihood)
@@ -56,35 +41,33 @@ class StateGroup:
     """
     A class for representing a group of states with sampled configurations.
 
+    .. _scipy.optimize.minimize:
+        https://tinyurl.com/yx3by4p3
+
     Parameters
     ----------
     states
         A sequence of hashable identifiers for the states in the group. The number
-        :math:`K` of states is inferred from the length of this sequence. If a given
-        state appears in more than one group, it must be represented by the same
-        identifier in all groups.
+        :math:`K` of states is the length of this sequence. If an identical state
+        appears in other groups, it should have the same hashable identifier in all
+        groups.
     potentials
-        A matrix of reduced potentials. This matrix can have one of the following
-        shapes:
-
-        1. :math:`(K, N_{\\rm sum})`, where :math:`N_{\\rm sum} = \\sum_{i=0}^{K-1}
-        N_i` and :math:`N_i` is the number of samples drawn from state :math:`i`.
-        In this case, :math:`u_{k,n}` is the reduced potential of the :math:`n`-th
-        sample evaluated in the :math:`k`-th state, independently of which state
-        the sample was drawn from.
-
+        A matrix of reduced potentials having one of the following shapes:
+        1. :math:`(K, N_{\\rm sum})`, with :math:`N_{\\rm sum} = \\sum_{i=0}^{K-1} N_i`,
+        where :math:`N_i` is the number of samples drawn from state :math:`i`. Thus,
+        :math:`u_{k,n}` is the reduced potential of the :math:`n`-th sample evaluated
+        in the :math:`k`-th state, independently of which state the sample was actually
+        drawn from.
         2. :math:`(K, K, N_{\\rm max})`, where :math:`N_{\\rm max} = \\max(N_0,
         \\ldots, N_{K-1})`. In this case, :math:`u_{k,l,n}` is the reduced potential
-        of the :math:`n`-th sample drawn from the :math:`l`-th state, but evaluated
-        in the :math:`k`-th state.
+        evaluated at the :math:`k`-th state for the :math:`n`-th sample drawn from the
+        :math:`l`-th state.
     sample_sizes
-        The number of samples drawn from each state in the group. If not provided,
-        it will be assumed that all states have the same number of samples and
-        this number will be inferred from the shape of the reduced potential
-        matrix.
+        The number of samples drawn from each state. If not provided, it is assumed
+        that the samples are evenly split among the states.
     method
         The minimization method to use for free energy calculation. The options are the
-        same as for :func:`scipy.optimize.minimize`.
+        same as for `scipy.optimize.minimize`_.
     tolerance
         The tolerance for termination of the minimization. Each method sets some
         relevant solver-specific tolerance(s) equal to this value.
@@ -92,9 +75,8 @@ class StateGroup:
         Whether to allow unconverged minimization results due to lack of numerical
         precision.
     **kwargs
-        Additional keyword arguments that will be passed to the
-        :func:`scipy.optimize.minimize` function, except for ``method``, ``tol``,
-        ``jac`` and ``hess``.
+        Additional keyword arguments that will be passed to `scipy.optimize.minimize`_,
+        except for ``method``, ``tol``, ``jac`` and ``hess``.
 
     Examples
     --------
@@ -130,9 +112,9 @@ class StateGroup:
         num_states = len(states)
         shape = potentials.shape
         ndim = len(shape)
-        self._validate_input(num_states, shape, ndim, sample_sizes)
-        self._states = states
         args = (num_states, shape, ndim, sample_sizes)
+        self._validate_input(*args)
+        self._states = states
         self._sample_sizes = self._get_sample_sizes_array(*args)
         self._potentials = self._get_potentials_array(*args, potentials)
         self._free_energies = self._compute_free_energies(
