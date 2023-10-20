@@ -126,17 +126,20 @@ class SparseMBAR:  # pylint: disable=too-few-public-methods
         initial_guess = self._compute_free_energy_initial_guess(
             method, tolerance, allow_unconverged, **kwargs
         )
-        free_energies = argmin(
-            sparse_mbar_negative_log_likelihood,
-            initial_guess,
+        extra_args = (
             [group.potentials for group in self._groups],
             [group.sample_sizes for group in self._groups],
             self._state_indices,
-            method=method,
-            tol=tolerance,
-            allow_unconverged=allow_unconverged,
-            jac=sparse_mbar_gradient,
-            hess=sparse_mbar_hessian,
+        )
+        free_energies = argmin(
+            sparse_mbar_negative_log_likelihood,
+            initial_guess,
+            extra_args,
+            method,
+            tolerance,
+            allow_unconverged,
+            sparse_mbar_gradient,
+            sparse_mbar_hessian,
             **kwargs,
         )
         return jnp.insert(free_energies, 0, 0.0)
@@ -162,9 +165,10 @@ class SparseMBAR:  # pylint: disable=too-few-public-methods
         shifts = argmin(
             _misfit,
             np.zeros(self._num_groups - 1),
-            method=method,
-            tol=tolerance,
-            allow_unconverged=allow_unconverged,
+            (),
+            method,
+            tolerance,
+            allow_unconverged,
             **kwargs,
         )
         shifts = jnp.insert(shifts, 0, 0.0)

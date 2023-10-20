@@ -187,13 +187,12 @@ class StateGroup:
         xmin = argmin(
             mbar_negative_log_likelihood,
             jnp.zeros(len(self._states) - 1),
-            self._potentials,
-            self._sample_sizes,
-            method=method,
-            tol=tolerance,
-            allow_unconverged=allow_unconverged,
-            jac=mbar_gradient,
-            hess=mbar_hessian,
+            (self._potentials, self._sample_sizes),
+            method,
+            tolerance,
+            allow_unconverged,
+            mbar_gradient,
+            mbar_hessian,
             **kwargs,
         )
         return jnp.insert(xmin, 0, 0.0)

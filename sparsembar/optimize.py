@@ -24,7 +24,7 @@ _METHODS_THAT_REQUIRE_HESSIAN = [
 def argmin(
     objective_function: t.Callable,
     initial_guess: jnp.ndarray,
-    *args,
+    extra_args: t.Sequence[t.Any],
     method: str = "BFGS",
     tolerance: float = 1e-12,
     allow_unconverged: bool = True,
@@ -42,7 +42,7 @@ def argmin(
         The function to be minimized.
     x0
         The initial guess.
-    args
+    extra_args
         Additional arguments to be passed to the function.
     method
         The minimization method to use. The options are the same as for
@@ -66,7 +66,7 @@ def argmin(
     kwargs = {**kwargs, "method": method, "tol": tolerance, "jac": jac}
     if method in _METHODS_THAT_REQUIRE_HESSIAN:
         kwargs["hess"] = hess
-    result = optimize.minimize(objective_function, initial_guess, args, **kwargs)
+    result = optimize.minimize(objective_function, initial_guess, extra_args, **kwargs)
     if not (result.success or (result.status == 2 and allow_unconverged)):
         raise ValueError(result.message)
     return jnp.array(result.x)
