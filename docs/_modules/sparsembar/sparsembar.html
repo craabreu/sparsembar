@@ -44,8 +44,10 @@
 
 <span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
 
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">jax</span> <span class="kn">import</span> <span class="n">numpy</span> <span class="k">as</span> <span class="n">jnp</span>
 
+<span class="kn">from</span> <span class="nn">.optimize</span> <span class="kn">import</span> <span class="n">argmin</span>
 <span class="kn">from</span> <span class="nn">.stategroup</span> <span class="kn">import</span> <span class="n">StateGroup</span>
 
 
@@ -55,6 +57,24 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A class for performing MBAR estimation on groups of states with sparse</span>
 <span class="sd">    connections.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+<span class="sd">    state_groups</span>
+<span class="sd">        A sequence of state groups.</span>
+<span class="sd">    method</span>
+<span class="sd">        The minimization method to use for free energy calculation. The options are the</span>
+<span class="sd">        same as for :func:`scipy.optimize.minimize`.</span>
+<span class="sd">    tolerance</span>
+<span class="sd">        The tolerance for termination of the minimization. Each method sets some</span>
+<span class="sd">        relevant solver-specific tolerance(s) equal to this value.</span>
+<span class="sd">    allow_unconverged</span>
+<span class="sd">        Whether to allow unconverged minimization results due to lack of numerical</span>
+<span class="sd">        precision.</span>
+<span class="sd">    **kwargs</span>
+<span class="sd">        Additional keyword arguments that will be passed to the</span>
+<span class="sd">        :func:`scipy.optimize.minimize` function, except for ``method``, ``tol``,</span>
+<span class="sd">        ``jac`` and ``hess``.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
@@ -72,26 +92,90 @@
 <span class="sd">    ...     smbar.StateGroup(ids, matrix)</span>
 <span class="sd">    ...     for ids, matrix in zip(state_id_lists, potentials)</span>
 <span class="sd">    ... )</span>
-<span class="sd">    &gt;&gt;&gt; states = sorted(estimator.all_states)</span>
+<span class="sd">    &gt;&gt;&gt; states = estimator.all_states</span>
 <span class="sd">    &gt;&gt;&gt; states</span>
-<span class="sd">    [0, 1, 2, 3, 4]</span>
+<span class="sd">    (0, 1, 2, 3, 4)</span>
 <span class="sd">    &gt;&gt;&gt; [estimator.groups_with_state(state) for state in states]</span>
-<span class="sd">    [[0], [0], [0, 1], [1], [1]]</span>
+<span class="sd">    [(0,), (0,), (0, 1), (1,), (1,)]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_groups</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="n">StateGroup</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">state_groups</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Iterable</span><span class="p">[</span><span class="n">StateGroup</span><span class="p">],</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;BFGS&quot;</span><span class="p">,</span>
+        <span class="n">tolerance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-12</span><span class="p">,</span>
+        <span class="n">allow_unconverged</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_groups</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">state_groups</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_all_states</span> <span class="o">=</span> <span class="p">{</span><span class="n">state</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groups</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">states</span><span class="p">}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_groups_with_state</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="n">state</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-                <span class="p">[</span>
-                    <span class="n">index</span>
-                    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_groups</span><span class="p">)</span>
-                    <span class="k">if</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">states</span>
-                <span class="p">]</span>
-            <span class="p">)</span>
-            <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_states</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_num_groups</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_groups</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_groups_with_state</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">group_index</span><span class="p">,</span> <span class="n">group</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_groups</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">state_index</span><span class="p">,</span> <span class="n">state</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">states</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">state</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groups_with_state</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_groups_with_state</span><span class="p">[</span><span class="n">state</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_groups_with_state</span><span class="p">[</span><span class="n">state</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">group_index</span><span class="p">,</span> <span class="n">state_index</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_all_states</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_groups_with_state</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_num_states</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_all_states</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state_indices</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_all_states</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">state</span><span class="p">)</span> <span class="k">for</span> <span class="n">state</span> <span class="ow">in</span> <span class="n">group</span><span class="o">.</span><span class="n">states</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groups</span>
+        <span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_overlapping_states</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">state</span><span class="p">:</span> <span class="n">group_state_pairs</span>
+            <span class="k">for</span> <span class="n">state</span><span class="p">,</span> <span class="n">group_state_pairs</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groups_with_state</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">group_state_pairs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
         <span class="p">}</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_linking_states</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">index</span>
+                <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">pairs</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_groups_with_state</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">pairs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_free_energies</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_free_energy_initial_guess</span><span class="p">(</span>
+            <span class="n">method</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">,</span> <span class="n">allow_unconverged</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_compute_free_energy_initial_guess</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">tolerance</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+        <span class="n">allow_unconverged</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">nans</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_states</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+        <span class="n">free_energies</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span>
+            <span class="n">jnp</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">nans</span><span class="p">,</span> <span class="n">state_indices</span><span class="p">,</span> <span class="n">group</span><span class="o">.</span><span class="n">get_free_energies</span><span class="p">(),</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">group</span><span class="p">,</span> <span class="n">state_indices</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_groups</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_indices</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">_misfit</span><span class="p">(</span><span class="n">shifts</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+            <span class="n">shifts</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">shifts</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+            <span class="n">shifted</span> <span class="o">=</span> <span class="n">free_energies</span> <span class="o">+</span> <span class="n">shifts</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">nansum</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">shifted</span> <span class="o">-</span> <span class="n">jnp</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">shifted</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)))</span>
+
+        <span class="n">shifts</span> <span class="o">=</span> <span class="n">argmin</span><span class="p">(</span>
+            <span class="n">_misfit</span><span class="p">,</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_groups</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span>
+            <span class="n">tol</span><span class="o">=</span><span class="n">tolerance</span><span class="p">,</span>
+            <span class="n">allow_unconverged</span><span class="o">=</span><span class="n">allow_unconverged</span><span class="p">,</span>
+            <span class="n">jac</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">hess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">shifts</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">shifts</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+        <span class="n">free_energies</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">free_energies</span> <span class="o">+</span> <span class="n">shifts</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">free_energies</span> <span class="o">=</span> <span class="n">free_energies</span> <span class="o">-</span> <span class="n">free_energies</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">free_energies</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">all_states</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">:</span>
@@ -113,11 +197,65 @@
 
 <div class="viewcode-block" id="SparseMBAR.groups_with_state">
 <a class="viewcode-back" href="../../api/SparseMBAR.html#sparsembar.SparseMBAR.groups_with_state">[docs]</a>
-    <span class="k">def</span> <span class="nf">groups_with_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Hashable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;The index of the state groups with the given state.&quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="n">state</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_states</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">groups_with_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Hashable</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        The index of the state groups that contain the given state.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        state</span>
+<span class="sd">            The state whose groups will be returned.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        t.Tuple[int]</span>
+<span class="sd">            The indices of the state groups that contain the given state.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">state</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groups_with_state</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown state </span><span class="si">{</span><span class="n">state</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groups_with_state</span><span class="p">[</span><span class="n">state</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span></div>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">index</span> <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groups_with_state</span><span class="p">[</span><span class="n">state</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="SparseMBAR.get_free_energies">
+<a class="viewcode-back" href="../../api/SparseMBAR.html#sparsembar.SparseMBAR.get_free_energies">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_free_energies</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Examples</span>
+<span class="sd">        --------</span>
+<span class="sd">        &gt;&gt;&gt; import sparsembar as smbar</span>
+<span class="sd">        &gt;&gt;&gt; mean_lists = [0, 1, 2], [2, 2, 1, 0]</span>
+<span class="sd">        &gt;&gt;&gt; sigma_lists = [1, 2, 3], [3, 2, 1, 1]</span>
+
+<span class="sd">        Using tuples of means and standard deviations as state IDs:</span>
+
+<span class="sd">        &gt;&gt;&gt; state_id_lists = [</span>
+<span class="sd">        ...     [(mean, sigma) for mean, sigma in zip(means, sigmas)]</span>
+<span class="sd">        ...     for means, sigmas in zip(mean_lists, sigma_lists)</span>
+<span class="sd">        ... ]</span>
+<span class="sd">        &gt;&gt;&gt; state_id_lists</span>
+<span class="sd">        [[(0, 1), (1, 2), (2, 3)], [(2, 3), (2, 2), (1, 1), (0, 1)]]</span>
+
+<span class="sd">        Sampling from multi-dimensional Gaussian distributions:</span>
+
+<span class="sd">        &gt;&gt;&gt; models = [</span>
+<span class="sd">        ...     smbar.MultiGaussian(means, sigmas, seed=123)</span>
+<span class="sd">        ...     for means, sigmas in zip(mean_lists, sigma_lists)</span>
+<span class="sd">        ... ]</span>
+<span class="sd">        &gt;&gt;&gt; potentials = [</span>
+<span class="sd">        ...     model.compute_reduced_potentials(model.draw_samples(100))</span>
+<span class="sd">        ...     for model in models</span>
+<span class="sd">        ... ]</span>
+
+<span class="sd">        Estimating the free energies of the states:</span>
+
+<span class="sd">        &gt;&gt;&gt; estimator = smbar.SparseMBAR(</span>
+<span class="sd">        ...     smbar.StateGroup(ids, matrix)</span>
+<span class="sd">        ...     for ids, matrix in zip(state_id_lists, potentials)</span>
+<span class="sd">        ... )</span>
+<span class="sd">        &gt;&gt;&gt; estimator.get_free_energies()</span>
+<span class="sd">        Array([...], ...dtype=float64)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_free_energies</span></div>
 </div>
 
 </pre></div>

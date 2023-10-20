@@ -176,6 +176,9 @@
             <span class="n">method</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">,</span> <span class="n">allow_unconverged</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
         <span class="p">)</span>
 
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_states</span><span class="p">)</span>
+
     <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
         <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;StateGroup(states=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_states</span><span class="si">}</span><span class="s2">, sample_sizes=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_sample_sizes</span><span class="si">}</span><span class="s2">)&quot;</span>
 
