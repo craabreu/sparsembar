@@ -139,6 +139,9 @@ class StateGroup:
             method, tolerance, allow_unconverged, **kwargs
         )
 
+    def __len__(self) -> int:
+        return len(self._states)
+
     def __repr__(self) -> str:
         return f"StateGroup(states={self._states}, sample_sizes={self._sample_sizes})"
 

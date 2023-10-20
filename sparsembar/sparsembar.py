@@ -81,14 +81,28 @@ class SparseMBAR:  # pylint: disable=too-few-public-methods
                     self._groups_with_state[state] = []
                 self._groups_with_state[state].append((group_index, state_index))
 
+        self._all_states = tuple(self._groups_with_state)
+        self._num_states = len(self._all_states)
+
+        self._state_indices = [
+            jnp.array([self._all_states.index(state) for state in group.states])
+            for group in self._groups
+        ]
+
         self._overlapping_states = {
             state: group_state_pairs
             for state, group_state_pairs in self._groups_with_state.items()
             if len(group_state_pairs) > 1
         }
 
-        self._all_states = tuple(self._groups_with_state)
-        self._num_states = len(self._all_states)
+        self._linking_states = jnp.array(
+            [
+                index
+                for index, pairs in enumerate(self._groups_with_state.values())
+                if len(pairs) > 1
+            ]
+        )
+
         self._free_energies = self._compute_free_energy_initial_guess(
             method, tolerance, allow_unconverged, **kwargs
         )
@@ -100,21 +114,16 @@ class SparseMBAR:  # pylint: disable=too-few-public-methods
         allow_unconverged: bool,
         **kwargs,
     ) -> None:
-        free_energies = [np.array(group.get_free_energies()) for group in self._groups]
+        nans = jnp.full(self._num_states, jnp.nan)
+        free_energies = jnp.vstack(
+            jnp.put(nans, state_indices, group.get_free_energies(), inplace=False)
+            for group, state_indices in zip(self._groups, self._state_indices)
+        )
 
-        def _sum_square_deviations(values: t.Iterable[float]) -> float:
-            values = np.fromiter(values, dtype=np.float64)
-            return np.square(values - values.mean()).sum()
-
-        def _misfit(shifts: np.ndarray) -> float:
-            shifts = np.insert(shifts, 0, 0.0)
-            return sum(
-                _sum_square_deviations(
-                    free_energies[igroup][istate] + shifts[igroup]
-                    for igroup, istate in pairs
-                )
-                for pairs in self._overlapping_states.values()
-            )
+        def _misfit(shifts: jnp.ndarray) -> float:
+            shifts = jnp.insert(shifts, 0, 0.0)
+            shifted = free_energies + shifts[:, None]
+            return jnp.nansum(jnp.square(shifted - jnp.nanmean(shifted, axis=0)))
 
         shifts = argmin(
             _misfit,
@@ -125,16 +134,11 @@ class SparseMBAR:  # pylint: disable=too-few-public-methods
             jac=None,
             hess=None,
             **kwargs,
-        ).tolist()
-        for index, shift in enumerate(shifts, 1):
-            free_energies[index] += shift
-        for _, pairs in self._overlapping_states.items():
-            mean_free_energy = np.mean(
-                [free_energies[igroup][istate].item() for igroup, istate in pairs]
-            )
-            for igroup, istate in pairs:
-                free_energies[igroup][istate] = mean_free_energy
-        return tuple(map(jnp.array, free_energies))
+        )
+        shifts = jnp.insert(shifts, 0, 0.0)
+        free_energies = jnp.nanmean(free_energies + shifts[:, None], axis=0)
+        free_energies = free_energies - free_energies.at[0].get()
+        return free_energies
 
     @property
     def all_states(self) -> set:
@@ -154,8 +158,20 @@ class SparseMBAR:  # pylint: disable=too-few-public-methods
         """The list of state groups."""
         return self._groups
 
-    def groups_with_state(self, state: t.Hashable) -> int:
-        """The index of the state groups with the given state."""
+    def groups_with_state(self, state: t.Hashable) -> t.Tuple[int]:
+        """
+        The index of the state groups that contain the given state.
+
+        Parameters
+        ----------
+        state
+            The state whose groups will be returned.
+
+        Returns
+        -------
+        t.Tuple[int]
+            The indices of the state groups that contain the given state.
+        """
         if state not in self._groups_with_state:
             raise ValueError(f"Unknown state {state}")
         return tuple(index for index, _ in self._groups_with_state[state])
@@ -165,14 +181,20 @@ class SparseMBAR:  # pylint: disable=too-few-public-methods
         Examples
         --------
         >>> import sparsembar as smbar
-        >>> mean_lists = [0, 1, 2], [2, 1, 0]
-        >>> sigma_lists = [1, 2, 3], [3, 1, 2]
+        >>> mean_lists = [0, 1, 2], [2, 2, 1, 0]
+        >>> sigma_lists = [1, 2, 3], [3, 2, 1, 1]
+
+        Using tuples of means and standard deviations as state IDs:
+
         >>> state_id_lists = [
         ...     [(mean, sigma) for mean, sigma in zip(means, sigmas)]
         ...     for means, sigmas in zip(mean_lists, sigma_lists)
         ... ]
         >>> state_id_lists
-        [[(0, 1), (1, 2), (2, 3)], [(2, 3), (1, 1), (0, 2)]]
+        [[(0, 1), (1, 2), (2, 3)], [(2, 3), (2, 2), (1, 1), (0, 1)]]
+
+        Sampling from multi-dimensional Gaussian distributions:
+
         >>> models = [
         ...     smbar.MultiGaussian(means, sigmas, seed=123)
         ...     for means, sigmas in zip(mean_lists, sigma_lists)
@@ -181,11 +203,14 @@ class SparseMBAR:  # pylint: disable=too-few-public-methods
         ...     model.compute_reduced_potentials(model.draw_samples(100))
         ...     for model in models
         ... ]
+
+        Estimating the free energies of the states:
+
         >>> estimator = smbar.SparseMBAR(
         ...     smbar.StateGroup(ids, matrix)
         ...     for ids, matrix in zip(state_id_lists, potentials)
         ... )
         >>> estimator.get_free_energies()
-        (Array([...], dtype=float64), Array([...], dtype=float64))
+        Array([...], ...dtype=float64)
         """
         return self._free_energies
