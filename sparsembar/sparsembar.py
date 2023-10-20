@@ -7,13 +7,40 @@
 .. moduleauthor:: Charlles Abreu <craabreu@gmail.com>
 """
 
+import itertools as it
 import typing as t
 
+import jax
 import numpy as np
 from jax import numpy as jnp
 
 from .optimize import argmin
-from .stategroup import StateGroup
+from .stategroup import StateGroup, mbar_negative_log_likelihood
+
+
+@jax.jit
+def sparse_mbar_negative_log_likelihood(
+    free_energies: jnp.ndarray,
+    potentials: t.Sequence[jnp.ndarray],
+    sample_sizes: t.Sequence[jnp.ndarray],
+    state_indices: t.Sequence[jnp.ndarray],
+) -> float:
+    """The negative of the log-likelihood function that is maximized by the
+    Sparse MBAR estimator."""
+    free_energies = jnp.insert(free_energies, 0, 0.0)
+    return sum(
+        map(
+            mbar_negative_log_likelihood,
+            [jnp.take(free_energies, indices) for indices in state_indices],
+            potentials,
+            sample_sizes,
+            it.repeat(False),
+        )
+    )
+
+
+sparse_mbar_gradient = jax.grad(sparse_mbar_negative_log_likelihood)
+sparse_mbar_hessian = jax.hessian(sparse_mbar_negative_log_likelihood)
 
 
 class SparseMBAR:  # pylint: disable=too-few-public-methods
@@ -89,23 +116,30 @@ class SparseMBAR:  # pylint: disable=too-few-public-methods
             for group in self._groups
         ]
 
-        self._overlapping_states = {
-            state: group_state_pairs
-            for state, group_state_pairs in self._groups_with_state.items()
-            if len(group_state_pairs) > 1
-        }
-
-        self._linking_states = jnp.array(
-            [
-                index
-                for index, pairs in enumerate(self._groups_with_state.values())
-                if len(pairs) > 1
-            ]
-        )
-
-        self._free_energies = self._compute_free_energy_initial_guess(
+        self._free_energies = self._compute_free_energies(
             method, tolerance, allow_unconverged, **kwargs
         )
+
+    def _compute_free_energies(
+        self, method: str, tolerance: float, allow_unconverged: bool, **kwargs
+    ) -> None:
+        initial_guess = self._compute_free_energy_initial_guess(
+            method, tolerance, allow_unconverged, **kwargs
+        )
+        free_energies = argmin(
+            sparse_mbar_negative_log_likelihood,
+            initial_guess,
+            [group.potentials for group in self._groups],
+            [group.sample_sizes for group in self._groups],
+            self._state_indices,
+            method=method,
+            tol=tolerance,
+            allow_unconverged=allow_unconverged,
+            jac=sparse_mbar_gradient,
+            hess=sparse_mbar_hessian,
+            **kwargs,
+        )
+        return jnp.insert(free_energies, 0, 0.0)
 
     def _compute_free_energy_initial_guess(
         self,
@@ -131,25 +165,21 @@ class SparseMBAR:  # pylint: disable=too-few-public-methods
             method=method,
             tol=tolerance,
             allow_unconverged=allow_unconverged,
-            jac=None,
-            hess=None,
             **kwargs,
         )
         shifts = jnp.insert(shifts, 0, 0.0)
         free_energies = jnp.nanmean(free_energies + shifts[:, None], axis=0)
-        free_energies = free_energies - free_energies.at[0].get()
-        return free_energies
+        return jnp.delete(free_energies - free_energies.at[0].get(), 0)
 
     @property
-    def all_states(self) -> set:
+    def all_states(self) -> t.Tuple[t.Hashable, ...]:
         """
-        Return the set of states in the groups.
+        Return a tuple of all distinct states in the groups.
 
         Returns
         -------
-        set
-            The set of states in the groups.
-
+        t.Tuple[t.Hashable, ...]
+            A tuple of all distinct states in the groups.
         """
         return self._all_states
 
