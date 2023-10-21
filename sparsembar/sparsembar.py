@@ -210,8 +210,24 @@ class SparseMBAR:  # pylint: disable=too-few-public-methods
             raise ValueError(f"Unknown state {state}")
         return tuple(index for index, _ in self._groups_with_state[state])
 
-    def get_free_energies(self) -> jnp.ndarray:
+    def get_free_energies(
+        self, return_dict: bool = False
+    ) -> t.Union[t.Dict[t.Hashable, float], t.Tuple[jnp.ndarray, ...]]:
         """
+        Return the free energies of all states in the groups.
+
+        Parameters
+        ----------
+        return_dict
+            Whether to return a dictionary of free energies with the states as keys.
+
+        Returns
+        -------
+        t.Union[t.Dict[t.Hashable, float], jnp.ndarray]
+            The reduced free energies of the states. If ``return_dict`` is ``True``,
+            the return value is a dictionary of free energies with the states as keys.
+            Otherwise, it is an array of free energies.
+
         Examples
         --------
         >>> import sparsembar as smbar
@@ -245,6 +261,12 @@ class SparseMBAR:  # pylint: disable=too-few-public-methods
         ...     for ids, matrix in zip(state_id_lists, potentials)
         ... )
         >>> estimator.get_free_energies()
-        Array([...], ...dtype=float64)
+        (Array([...], ...dtype=float64), Array([...], ...dtype=float64))
+        >>> estimator.get_free_energies(return_dict=True)
+        {(0, 1): 0.0, (1, 2): ..., (2, 3): ..., (2, 2): ..., (1, 1): ...}
         """
-        return self._free_energies
+        if return_dict:
+            return dict(zip(self._all_states, self._free_energies.tolist()))
+        return tuple(
+            jnp.take(self._free_energies, indices) for indices in self._state_indices
+        )

@@ -235,19 +235,19 @@ class StateGroup:
         >>> import sparsembar as smbar
         >>> from pymbar import MBAR
         >>> from numpy import allclose
-        >>> model = smbar.MultiGaussian([0, 1, 2], [1, 2, 3], seed=1)
+        >>> model = smbar.MultiGaussian([0, 1, 2], [1, 2, 3], seed=123)
         >>> samples = model.draw_samples(100)
         >>> potentials = model.compute_reduced_potentials(samples)
         >>> state_group = smbar.StateGroup([0, 1, 2], potentials, method="Newton-CG")
         >>> free_energies = state_group.get_free_energies()
         >>> free_energies
         Array([...], dtype=float64)
+        >>> state_group.get_free_energies(return_dict=True)
+        {0: 0.0, 1: ..., 2: ...}
         >>> mbar = MBAR(state_group.potentials, state_group.sample_sizes)
         >>> result = mbar.compute_free_energy_differences()
         >>> assert allclose(free_energies, result["Delta_f"][0, :])
         """
-        return (
-            dict(zip(self._states, self._free_energies))
-            if return_dict
-            else self._free_energies
-        )
+        if return_dict:
+            return dict(zip(self._states, self._free_energies.tolist()))
+        return self._free_energies
