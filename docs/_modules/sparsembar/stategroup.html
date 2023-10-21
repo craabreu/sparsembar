@@ -42,6 +42,7 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 
 <span class="kn">import</span> <span class="nn">jax</span>
 <span class="kn">from</span> <span class="nn">jax</span> <span class="kn">import</span> <span class="n">numpy</span> <span class="k">as</span> <span class="n">jnp</span>
@@ -50,37 +51,21 @@
 <span class="kn">from</span> <span class="nn">.optimize</span> <span class="kn">import</span> <span class="n">argmin</span>
 
 
-<span class="nd">@jax</span><span class="o">.</span><span class="n">jit</span>
+<span class="nd">@partial</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">,</span> <span class="n">static_argnames</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;prepend_zero&quot;</span><span class="p">,))</span>
 <span class="k">def</span> <span class="nf">mbar_negative_log_likelihood</span><span class="p">(</span>
     <span class="n">free_energies</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">potentials</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
     <span class="n">sample_sizes</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">prepend_zero</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Compute the likelihood function that is maximized by the MBAR estimator.</span>
-
-<span class="sd">    Parameters</span>
-<span class="sd">    ----------</span>
-<span class="sd">    free_energies</span>
-<span class="sd">        The reduced free energy estimates for all states except the first one. The</span>
-<span class="sd">        shape of this array is :math:`(K-1,)`, where :math:`K` is the number of</span>
-<span class="sd">        states.</span>
-<span class="sd">    potentials</span>
-<span class="sd">        The reduced potential matrix, whose element :math:`u_{k,n}` is the reduced</span>
-<span class="sd">        potential of the :math:`n`-th sample evaluated in the :math:`k`-th state,</span>
-<span class="sd">        independently of which state it belongs to. The shape of this matrix is</span>
-<span class="sd">        :math:`(K, N_{\\rm sum})`, where :math:`N_{\\rm sum} = \\sum_{i=0}^{K-1}</span>
-<span class="sd">        N_i` and :math:`N_i` is the number of samples drawn from state :math:`i`.</span>
-<span class="sd">    sample_sizes</span>
-<span class="sd">        The number of samples drawn from each state, whose shape is :math:`(K,)`.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">all_free_energies</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">free_energies</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;The negative of the log-likelihood function that is maximized by the MBAR&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">prepend_zero</span><span class="p">:</span>
+        <span class="n">free_energies</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">free_energies</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">special</span><span class="o">.</span><span class="n">logsumexp</span><span class="p">(</span>
-        <span class="n">all_free_energies</span> <span class="o">-</span> <span class="n">potentials</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
+        <span class="n">free_energies</span> <span class="o">-</span> <span class="n">potentials</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
         <span class="n">b</span><span class="o">=</span><span class="n">sample_sizes</span><span class="p">,</span>
         <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-    <span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">-</span> <span class="n">jnp</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">sample_sizes</span><span class="p">,</span> <span class="n">all_free_energies</span><span class="p">)</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">-</span> <span class="n">jnp</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">sample_sizes</span><span class="p">,</span> <span class="n">free_energies</span><span class="p">)</span>
 
 
 <span class="n">mbar_gradient</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">grad</span><span class="p">(</span><span class="n">mbar_negative_log_likelihood</span><span class="p">)</span>
@@ -93,35 +78,33 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A class for representing a group of states with sampled configurations.</span>
 
+<span class="sd">    .. _scipy.optimize.minimize:</span>
+<span class="sd">        https://tinyurl.com/yx3by4p3</span>
+
 <span class="sd">    Parameters</span>
 <span class="sd">    ----------</span>
 <span class="sd">    states</span>
 <span class="sd">        A sequence of hashable identifiers for the states in the group. The number</span>
-<span class="sd">        :math:`K` of states is inferred from the length of this sequence. If a given</span>
-<span class="sd">        state appears in more than one group, it must be represented by the same</span>
-<span class="sd">        identifier in all groups.</span>
+<span class="sd">        :math:`K` of states is the length of this sequence. If an identical state</span>
+<span class="sd">        appears in other groups, it should have the same hashable identifier in all</span>
+<span class="sd">        groups.</span>
 <span class="sd">    potentials</span>
-<span class="sd">        A matrix of reduced potentials. This matrix can have one of the following</span>
-<span class="sd">        shapes:</span>
-
-<span class="sd">        1. :math:`(K, N_{\\rm sum})`, where :math:`N_{\\rm sum} = \\sum_{i=0}^{K-1}</span>
-<span class="sd">        N_i` and :math:`N_i` is the number of samples drawn from state :math:`i`.</span>
-<span class="sd">        In this case, :math:`u_{k,n}` is the reduced potential of the :math:`n`-th</span>
-<span class="sd">        sample evaluated in the :math:`k`-th state, independently of which state</span>
-<span class="sd">        the sample was drawn from.</span>
-
+<span class="sd">        A matrix of reduced potentials having one of the following shapes:</span>
+<span class="sd">        1. :math:`(K, N_{\\rm sum})`, with :math:`N_{\\rm sum} = \\sum_{i=0}^{K-1} N_i`,</span>
+<span class="sd">        where :math:`N_i` is the number of samples drawn from state :math:`i`. Thus,</span>
+<span class="sd">        :math:`u_{k,n}` is the reduced potential of the :math:`n`-th sample evaluated</span>
+<span class="sd">        in the :math:`k`-th state, independently of which state the sample was actually</span>
+<span class="sd">        drawn from.</span>
 <span class="sd">        2. :math:`(K, K, N_{\\rm max})`, where :math:`N_{\\rm max} = \\max(N_0,</span>
 <span class="sd">        \\ldots, N_{K-1})`. In this case, :math:`u_{k,l,n}` is the reduced potential</span>
-<span class="sd">        of the :math:`n`-th sample drawn from the :math:`l`-th state, but evaluated</span>
-<span class="sd">        in the :math:`k`-th state.</span>
+<span class="sd">        evaluated at the :math:`k`-th state for the :math:`n`-th sample drawn from the</span>
+<span class="sd">        :math:`l`-th state.</span>
 <span class="sd">    sample_sizes</span>
-<span class="sd">        The number of samples drawn from each state in the group. If not provided,</span>
-<span class="sd">        it will be assumed that all states have the same number of samples and</span>
-<span class="sd">        this number will be inferred from the shape of the reduced potential</span>
-<span class="sd">        matrix.</span>
+<span class="sd">        The number of samples drawn from each state. If not provided, it is assumed</span>
+<span class="sd">        that the samples are evenly split among the states.</span>
 <span class="sd">    method</span>
 <span class="sd">        The minimization method to use for free energy calculation. The options are the</span>
-<span class="sd">        same as for :func:`scipy.optimize.minimize`.</span>
+<span class="sd">        same as for `scipy.optimize.minimize`_.</span>
 <span class="sd">    tolerance</span>
 <span class="sd">        The tolerance for termination of the minimization. Each method sets some</span>
 <span class="sd">        relevant solver-specific tolerance(s) equal to this value.</span>
@@ -129,9 +112,8 @@
 <span class="sd">        Whether to allow unconverged minimization results due to lack of numerical</span>
 <span class="sd">        precision.</span>
 <span class="sd">    **kwargs</span>
-<span class="sd">        Additional keyword arguments that will be passed to the</span>
-<span class="sd">        :func:`scipy.optimize.minimize` function, except for ``method``, ``tol``,</span>
-<span class="sd">        ``jac`` and ``hess``.</span>
+<span class="sd">        Additional keyword arguments that will be passed to `scipy.optimize.minimize`_,</span>
+<span class="sd">        except for ``method``, ``tol``, ``jac`` and ``hess``.</span>
 
 <span class="sd">    Examples</span>
 <span class="sd">    --------</span>
@@ -167,9 +149,9 @@
         <span class="n">num_states</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">states</span><span class="p">)</span>
         <span class="n">shape</span> <span class="o">=</span> <span class="n">potentials</span><span class="o">.</span><span class="n">shape</span>
         <span class="n">ndim</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_input</span><span class="p">(</span><span class="n">num_states</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">ndim</span><span class="p">,</span> <span class="n">sample_sizes</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_states</span> <span class="o">=</span> <span class="n">states</span>
         <span class="n">args</span> <span class="o">=</span> <span class="p">(</span><span class="n">num_states</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">ndim</span><span class="p">,</span> <span class="n">sample_sizes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_validate_input</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_states</span> <span class="o">=</span> <span class="n">states</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_sample_sizes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_sample_sizes_array</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_potentials</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_potentials_array</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">potentials</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_free_energies</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_free_energies</span><span class="p">(</span>
@@ -242,13 +224,12 @@
         <span class="n">xmin</span> <span class="o">=</span> <span class="n">argmin</span><span class="p">(</span>
             <span class="n">mbar_negative_log_likelihood</span><span class="p">,</span>
             <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_states</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_potentials</span><span class="p">,</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_sample_sizes</span><span class="p">,</span>
-            <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span>
-            <span class="n">tol</span><span class="o">=</span><span class="n">tolerance</span><span class="p">,</span>
-            <span class="n">allow_unconverged</span><span class="o">=</span><span class="n">allow_unconverged</span><span class="p">,</span>
-            <span class="n">jac</span><span class="o">=</span><span class="n">mbar_gradient</span><span class="p">,</span>
-            <span class="n">hess</span><span class="o">=</span><span class="n">mbar_hessian</span><span class="p">,</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_potentials</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sample_sizes</span><span class="p">),</span>
+            <span class="n">method</span><span class="p">,</span>
+            <span class="n">tolerance</span><span class="p">,</span>
+            <span class="n">allow_unconverged</span><span class="p">,</span>
+            <span class="n">mbar_gradient</span><span class="p">,</span>
+            <span class="n">mbar_hessian</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">xmin</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>

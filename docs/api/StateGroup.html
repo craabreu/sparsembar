@@ -44,34 +44,29 @@
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>states</strong> (<em>Sequence</em><em>[</em><em>Hashable</em><em>]</em>) – A sequence of hashable identifiers for the states in the group. The number
-<span class="math notranslate nohighlight">\(K\)</span> of states is inferred from the length of this sequence. If a given
-state appears in more than one group, it must be represented by the same
-identifier in all groups.</p></li>
-<li><p><strong>potentials</strong> (<em>Array</em>) – <p>A matrix of reduced potentials. This matrix can have one of the following
-shapes:</p>
-<p>1. <span class="math notranslate nohighlight">\((K, N_{\rm sum})\)</span>, where <span class="math notranslate nohighlight">\(N_{\rm sum} = \sum_{i=0}^{K-1}
-N_i\)</span> and <span class="math notranslate nohighlight">\(N_i\)</span> is the number of samples drawn from state <span class="math notranslate nohighlight">\(i\)</span>.
-In this case, <span class="math notranslate nohighlight">\(u_{k,n}\)</span> is the reduced potential of the <span class="math notranslate nohighlight">\(n\)</span>-th
-sample evaluated in the <span class="math notranslate nohighlight">\(k\)</span>-th state, independently of which state
-the sample was drawn from.</p>
-<p>2. <span class="math notranslate nohighlight">\((K, K, N_{\rm max})\)</span>, where <span class="math notranslate nohighlight">\(N_{\rm max} = \max(N_0,
+<span class="math notranslate nohighlight">\(K\)</span> of states is the length of this sequence. If an identical state
+appears in other groups, it should have the same hashable identifier in all
+groups.</p></li>
+<li><p><strong>potentials</strong> (<em>Array</em>) – A matrix of reduced potentials having one of the following shapes:
+1. <span class="math notranslate nohighlight">\((K, N_{\rm sum})\)</span>, with <span class="math notranslate nohighlight">\(N_{\rm sum} = \sum_{i=0}^{K-1} N_i\)</span>,
+where <span class="math notranslate nohighlight">\(N_i\)</span> is the number of samples drawn from state <span class="math notranslate nohighlight">\(i\)</span>. Thus,
+<span class="math notranslate nohighlight">\(u_{k,n}\)</span> is the reduced potential of the <span class="math notranslate nohighlight">\(n\)</span>-th sample evaluated
+in the <span class="math notranslate nohighlight">\(k\)</span>-th state, independently of which state the sample was actually
+drawn from.
+2. <span class="math notranslate nohighlight">\((K, K, N_{\rm max})\)</span>, where <span class="math notranslate nohighlight">\(N_{\rm max} = \max(N_0,
 \ldots, N_{K-1})\)</span>. In this case, <span class="math notranslate nohighlight">\(u_{k,l,n}\)</span> is the reduced potential
-of the <span class="math notranslate nohighlight">\(n\)</span>-th sample drawn from the <span class="math notranslate nohighlight">\(l\)</span>-th state, but evaluated
-in the <span class="math notranslate nohighlight">\(k\)</span>-th state.</p>
-</p></li>
-<li><p><strong>sample_sizes</strong> (<em>Sequence</em><em>[</em><em>int</em><em>] </em><em>| </em><em>None</em>) – The number of samples drawn from each state in the group. If not provided,
-it will be assumed that all states have the same number of samples and
-this number will be inferred from the shape of the reduced potential
-matrix.</p></li>
+evaluated at the <span class="math notranslate nohighlight">\(k\)</span>-th state for the <span class="math notranslate nohighlight">\(n\)</span>-th sample drawn from the
+<span class="math notranslate nohighlight">\(l\)</span>-th state.</p></li>
+<li><p><strong>sample_sizes</strong> (<em>Sequence</em><em>[</em><em>int</em><em>] </em><em>| </em><em>None</em>) – The number of samples drawn from each state. If not provided, it is assumed
+that the samples are evenly split among the states.</p></li>
 <li><p><strong>method</strong> (<em>str</em>) – The minimization method to use for free energy calculation. The options are the
-same as for <code class="xref py py-func docutils literal notranslate"><span class="pre">scipy.optimize.minimize()</span></code>.</p></li>
+same as for <a class="reference external" href="https://tinyurl.com/yx3by4p3">scipy.optimize.minimize</a>.</p></li>
 <li><p><strong>tolerance</strong> (<em>float</em>) – The tolerance for termination of the minimization. Each method sets some
 relevant solver-specific tolerance(s) equal to this value.</p></li>
 <li><p><strong>allow_unconverged</strong> (<em>bool</em>) – Whether to allow unconverged minimization results due to lack of numerical
 precision.</p></li>
-<li><p><strong>**kwargs</strong> – Additional keyword arguments that will be passed to the
-<code class="xref py py-func docutils literal notranslate"><span class="pre">scipy.optimize.minimize()</span></code> function, except for <code class="docutils literal notranslate"><span class="pre">method</span></code>, <code class="docutils literal notranslate"><span class="pre">tol</span></code>,
-<code class="docutils literal notranslate"><span class="pre">jac</span></code> and <code class="docutils literal notranslate"><span class="pre">hess</span></code>.</p></li>
+<li><p><strong>**kwargs</strong> – Additional keyword arguments that will be passed to <a class="reference external" href="https://tinyurl.com/yx3by4p3">scipy.optimize.minimize</a>,
+except for <code class="docutils literal notranslate"><span class="pre">method</span></code>, <code class="docutils literal notranslate"><span class="pre">tol</span></code>, <code class="docutils literal notranslate"><span class="pre">jac</span></code> and <code class="docutils literal notranslate"><span class="pre">hess</span></code>.</p></li>
 </ul>
 </dd>
 </dl>
