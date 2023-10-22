@@ -146,7 +146,7 @@ class SparseMBAR:  # pylint: disable=too-few-public-methods
     ) -> None:
         free_energies = argmin(
             sparse_mbar_negative_log_likelihood,
-            self._rough_free_energies.at[1:].get(),
+            jnp.delete(self._rough_free_energies, 0),
             (
                 [group.potentials for group in self._groups],
                 [group.sample_sizes for group in self._groups],
@@ -159,8 +159,6 @@ class SparseMBAR:  # pylint: disable=too-few-public-methods
             sparse_mbar_hessian,
             **kwargs,
         )
-        print(self._rough_free_energies)
-        print(jnp.insert(free_energies, 0, 0.0))
         return jnp.insert(free_energies, 0, 0.0)
 
     @property
