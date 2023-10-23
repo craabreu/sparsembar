@@ -207,6 +207,24 @@ class StateGroup:
         """The matrix of reduced potentials."""
         return self._potentials
 
+    def get_sample_sizes(self, return_dict: bool = False) -> jnp.ndarray:
+        """
+        Get the number of samples drawn from each state in the group.
+
+        Parameters
+        ----------
+        return_dict
+            Whether to return a dictionary of sample sizes with the states as keys.
+
+        Returns
+        -------
+        jnp.ndarray
+            The number of samples drawn from each state in the group.
+        """
+        if return_dict:
+            return dict(zip(self._states, self._sample_sizes.tolist()))
+        return self._sample_sizes
+
     @property
     def sample_sizes(self) -> jnp.ndarray:
         """The number of samples drawn from each state in the group."""
