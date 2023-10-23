@@ -120,16 +120,18 @@ class SparseMBAR:  # pylint: disable=too-few-public-methods
             method, tolerance, allow_unconverged, **kwargs
         )
 
-    def _compute_rough_free_energies(self) -> jnp.ndarray:
+    def _concatenate(self, func: t.Callable[[StateGroup], jnp.ndarray]) -> jnp.ndarray:
         zeros = jnp.zeros(self._num_states)
-        sample_sizes = jnp.vstack(
-            jnp.put(zeros, state_indices, group.sample_sizes, inplace=False)
-            for group, state_indices in zip(self._groups, self._state_indices)
+        return jnp.vstack(
+            [
+                jnp.put(zeros, state_indices, func(group), inplace=False)
+                for group, state_indices in zip(self._groups, self._state_indices)
+            ]
         )
-        free_energies = jnp.vstack(
-            jnp.put(zeros, state_indices, group.get_free_energies(), inplace=False)
-            for group, state_indices in zip(self._groups, self._state_indices)
-        )
+
+    def _compute_rough_free_energies(self) -> jnp.ndarray:
+        sample_sizes = self._concatenate(lambda group: group.sample_sizes)
+        free_energies = self._concatenate(lambda group: group.get_free_energies())
         w_fractions = sample_sizes / sample_sizes.sum(axis=1, keepdims=True)
         z_fractions = sample_sizes / sample_sizes.sum(axis=0, keepdims=True)
         unshifted_means = (z_fractions * free_energies).sum(axis=0)
