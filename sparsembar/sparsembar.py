@@ -11,7 +11,6 @@ import itertools as it
 import typing as t
 
 import jax
-import numpy as np
 from jax import numpy as jnp
 
 from .optimize import argmin
@@ -116,25 +115,43 @@ class SparseMBAR:  # pylint: disable=too-few-public-methods
             for group in self._groups
         ]
 
+        self._rough_free_energies = self._compute_rough_free_energies()
         self._free_energies = self._compute_free_energies(
             method, tolerance, allow_unconverged, **kwargs
         )
 
+    def _compute_rough_free_energies(self) -> jnp.ndarray:
+        zeros = jnp.zeros(self._num_states)
+        sample_sizes = jnp.vstack(
+            jnp.put(zeros, state_indices, group.sample_sizes, inplace=False)
+            for group, state_indices in zip(self._groups, self._state_indices)
+        )
+        free_energies = jnp.vstack(
+            jnp.put(zeros, state_indices, group.get_free_energies(), inplace=False)
+            for group, state_indices in zip(self._groups, self._state_indices)
+        )
+        w_fractions = sample_sizes / sample_sizes.sum(axis=1, keepdims=True)
+        z_fractions = sample_sizes / sample_sizes.sum(axis=0, keepdims=True)
+        unshifted_means = (z_fractions * free_energies).sum(axis=0)
+        alpha_matrix = w_fractions.dot(z_fractions.T) - jnp.identity(self._num_groups)
+        b_vector = (w_fractions * (free_energies - unshifted_means)).sum(axis=1)
+        shifts = jnp.linalg.solve(
+            alpha_matrix.at[0, :].set(z_fractions.at[:, 0].get()),
+            b_vector.at[0].set(-unshifted_means.at[0].get()),
+        )
+        return unshifted_means + z_fractions.T.dot(shifts)
+
     def _compute_free_energies(
         self, method: str, tolerance: float, allow_unconverged: bool, **kwargs
     ) -> None:
-        initial_guess = self._compute_free_energy_initial_guess(
-            method, tolerance, allow_unconverged, **kwargs
-        )
-        extra_args = (
-            [group.potentials for group in self._groups],
-            [group.sample_sizes for group in self._groups],
-            self._state_indices,
-        )
         free_energies = argmin(
             sparse_mbar_negative_log_likelihood,
-            initial_guess,
-            extra_args,
+            jnp.delete(self._rough_free_energies, 0),
+            (
+                [group.potentials for group in self._groups],
+                [group.sample_sizes for group in self._groups],
+                self._state_indices,
+            ),
             method,
             tolerance,
             allow_unconverged,
@@ -143,37 +160,6 @@ class SparseMBAR:  # pylint: disable=too-few-public-methods
             **kwargs,
         )
         return jnp.insert(free_energies, 0, 0.0)
-
-    def _compute_free_energy_initial_guess(
-        self,
-        method: str,
-        tolerance: float,
-        allow_unconverged: bool,
-        **kwargs,
-    ) -> None:
-        nans = jnp.full(self._num_states, jnp.nan)
-        free_energies = jnp.vstack(
-            jnp.put(nans, state_indices, group.get_free_energies(), inplace=False)
-            for group, state_indices in zip(self._groups, self._state_indices)
-        )
-
-        def _misfit(shifts: jnp.ndarray) -> float:
-            shifts = jnp.insert(shifts, 0, 0.0)
-            shifted = free_energies + shifts[:, None]
-            return jnp.nansum(jnp.square(shifted - jnp.nanmean(shifted, axis=0)))
-
-        shifts = argmin(
-            _misfit,
-            np.zeros(self._num_groups - 1),
-            (),
-            method,
-            tolerance,
-            allow_unconverged,
-            **kwargs,
-        )
-        shifts = jnp.insert(shifts, 0, 0.0)
-        free_energies = jnp.nanmean(free_energies + shifts[:, None], axis=0)
-        return jnp.delete(free_energies - free_energies.at[0].get(), 0)
 
     @property
     def all_states(self) -> t.Tuple[t.Hashable, ...]:
@@ -210,8 +196,24 @@ class SparseMBAR:  # pylint: disable=too-few-public-methods
             raise ValueError(f"Unknown state {state}")
         return tuple(index for index, _ in self._groups_with_state[state])
 
-    def get_free_energies(self) -> jnp.ndarray:
+    def get_free_energies(
+        self, return_dict: bool = False
+    ) -> t.Union[t.Dict[t.Hashable, float], t.Tuple[jnp.ndarray, ...]]:
         """
+        Return the free energies of all states in the groups.
+
+        Parameters
+        ----------
+        return_dict
+            Whether to return a dictionary of free energies with the states as keys.
+
+        Returns
+        -------
+        t.Union[t.Dict[t.Hashable, float], jnp.ndarray]
+            The reduced free energies of the states. If ``return_dict`` is ``True``,
+            the return value is a dictionary of free energies with the states as keys.
+            Otherwise, it is an array of free energies.
+
         Examples
         --------
         >>> import sparsembar as smbar
@@ -245,6 +247,12 @@ class SparseMBAR:  # pylint: disable=too-few-public-methods
         ...     for ids, matrix in zip(state_id_lists, potentials)
         ... )
         >>> estimator.get_free_energies()
-        Array([...], ...dtype=float64)
+        (Array([...], ...dtype=float64), Array([...], ...dtype=float64))
+        >>> estimator.get_free_energies(return_dict=True)
+        {(0, 1): 0.0, (1, 2): ..., (2, 3): ..., (2, 2): ..., (1, 1): ...}
         """
-        return self._free_energies
+        if return_dict:
+            return dict(zip(self._all_states, self._free_energies.tolist()))
+        return tuple(
+            jnp.take(self._free_energies, indices) for indices in self._state_indices
+        )
