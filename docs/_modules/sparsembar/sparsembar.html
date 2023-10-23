@@ -46,7 +46,6 @@
 <span class="kn">import</span> <span class="nn">typing</span> <span class="k">as</span> <span class="nn">t</span>
 
 <span class="kn">import</span> <span class="nn">jax</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">jax</span> <span class="kn">import</span> <span class="n">numpy</span> <span class="k">as</span> <span class="n">jnp</span>
 
 <span class="kn">from</span> <span class="nn">.optimize</span> <span class="kn">import</span> <span class="n">argmin</span>
@@ -153,25 +152,45 @@
             <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groups</span>
         <span class="p">]</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">_rough_free_energies</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_rough_free_energies</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_free_energies</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_free_energies</span><span class="p">(</span>
             <span class="n">method</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">,</span> <span class="n">allow_unconverged</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
         <span class="p">)</span>
 
+    <span class="k">def</span> <span class="nf">_concatenate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">func</span><span class="p">:</span> <span class="n">t</span><span class="o">.</span><span class="n">Callable</span><span class="p">[[</span><span class="n">StateGroup</span><span class="p">],</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="n">zeros</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_states</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">jnp</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">zeros</span><span class="p">,</span> <span class="n">state_indices</span><span class="p">,</span> <span class="n">func</span><span class="p">(</span><span class="n">group</span><span class="p">),</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">group</span><span class="p">,</span> <span class="n">state_indices</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_groups</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_indices</span><span class="p">)</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_compute_rough_free_energies</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+        <span class="n">sample_sizes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_concatenate</span><span class="p">(</span><span class="k">lambda</span> <span class="n">group</span><span class="p">:</span> <span class="n">group</span><span class="o">.</span><span class="n">sample_sizes</span><span class="p">)</span>
+        <span class="n">free_energies</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_concatenate</span><span class="p">(</span><span class="k">lambda</span> <span class="n">group</span><span class="p">:</span> <span class="n">group</span><span class="o">.</span><span class="n">get_free_energies</span><span class="p">())</span>
+        <span class="n">w_fractions</span> <span class="o">=</span> <span class="n">sample_sizes</span> <span class="o">/</span> <span class="n">sample_sizes</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">z_fractions</span> <span class="o">=</span> <span class="n">sample_sizes</span> <span class="o">/</span> <span class="n">sample_sizes</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">unshifted_means</span> <span class="o">=</span> <span class="p">(</span><span class="n">z_fractions</span> <span class="o">*</span> <span class="n">free_energies</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">alpha_matrix</span> <span class="o">=</span> <span class="n">w_fractions</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">z_fractions</span><span class="o">.</span><span class="n">T</span><span class="p">)</span> <span class="o">-</span> <span class="n">jnp</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_groups</span><span class="p">)</span>
+        <span class="n">b_vector</span> <span class="o">=</span> <span class="p">(</span><span class="n">w_fractions</span> <span class="o">*</span> <span class="p">(</span><span class="n">free_energies</span> <span class="o">-</span> <span class="n">unshifted_means</span><span class="p">))</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">shifts</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">solve</span><span class="p">(</span>
+            <span class="n">alpha_matrix</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">z_fractions</span><span class="o">.</span><span class="n">at</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()),</span>
+            <span class="n">b_vector</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="o">-</span><span class="n">unshifted_means</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()),</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">unshifted_means</span> <span class="o">+</span> <span class="n">z_fractions</span><span class="o">.</span><span class="n">T</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">shifts</span><span class="p">)</span>
+
     <span class="k">def</span> <span class="nf">_compute_free_energies</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">allow_unconverged</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">initial_guess</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_free_energy_initial_guess</span><span class="p">(</span>
-            <span class="n">method</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">,</span> <span class="n">allow_unconverged</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
-        <span class="p">)</span>
-        <span class="n">extra_args</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="p">[</span><span class="n">group</span><span class="o">.</span><span class="n">potentials</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groups</span><span class="p">],</span>
-            <span class="p">[</span><span class="n">group</span><span class="o">.</span><span class="n">sample_sizes</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groups</span><span class="p">],</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_state_indices</span><span class="p">,</span>
-        <span class="p">)</span>
         <span class="n">free_energies</span> <span class="o">=</span> <span class="n">argmin</span><span class="p">(</span>
             <span class="n">sparse_mbar_negative_log_likelihood</span><span class="p">,</span>
-            <span class="n">initial_guess</span><span class="p">,</span>
-            <span class="n">extra_args</span><span class="p">,</span>
+            <span class="n">jnp</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_rough_free_energies</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+            <span class="p">(</span>
+                <span class="p">[</span><span class="n">group</span><span class="o">.</span><span class="n">potentials</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groups</span><span class="p">],</span>
+                <span class="p">[</span><span class="n">group</span><span class="o">.</span><span class="n">sample_sizes</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_groups</span><span class="p">],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_state_indices</span><span class="p">,</span>
+            <span class="p">),</span>
             <span class="n">method</span><span class="p">,</span>
             <span class="n">tolerance</span><span class="p">,</span>
             <span class="n">allow_unconverged</span><span class="p">,</span>
@@ -180,37 +199,6 @@
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">free_energies</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">_compute_free_energy_initial_guess</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">method</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">tolerance</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-        <span class="n">allow_unconverged</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
-        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">nans</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">full</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_states</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
-        <span class="n">free_energies</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span>
-            <span class="n">jnp</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">nans</span><span class="p">,</span> <span class="n">state_indices</span><span class="p">,</span> <span class="n">group</span><span class="o">.</span><span class="n">get_free_energies</span><span class="p">(),</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">group</span><span class="p">,</span> <span class="n">state_indices</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_groups</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_indices</span><span class="p">)</span>
-        <span class="p">)</span>
-
-        <span class="k">def</span> <span class="nf">_misfit</span><span class="p">(</span><span class="n">shifts</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
-            <span class="n">shifts</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">shifts</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
-            <span class="n">shifted</span> <span class="o">=</span> <span class="n">free_energies</span> <span class="o">+</span> <span class="n">shifts</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">]</span>
-            <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">nansum</span><span class="p">(</span><span class="n">jnp</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">shifted</span> <span class="o">-</span> <span class="n">jnp</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">shifted</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)))</span>
-
-        <span class="n">shifts</span> <span class="o">=</span> <span class="n">argmin</span><span class="p">(</span>
-            <span class="n">_misfit</span><span class="p">,</span>
-            <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_groups</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span>
-            <span class="p">(),</span>
-            <span class="n">method</span><span class="p">,</span>
-            <span class="n">tolerance</span><span class="p">,</span>
-            <span class="n">allow_unconverged</span><span class="p">,</span>
-            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">shifts</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">shifts</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
-        <span class="n">free_energies</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">nanmean</span><span class="p">(</span><span class="n">free_energies</span> <span class="o">+</span> <span class="n">shifts</span><span class="p">[:,</span> <span class="kc">None</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">free_energies</span> <span class="o">-</span> <span class="n">free_energies</span><span class="o">.</span><span class="n">at</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(),</span> <span class="mi">0</span><span class="p">)</span>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">all_states</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Hashable</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
@@ -252,8 +240,24 @@
 
 <div class="viewcode-block" id="SparseMBAR.get_free_energies">
 <a class="viewcode-back" href="../../api/SparseMBAR.html#sparsembar.SparseMBAR.get_free_energies">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_free_energies</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">get_free_energies</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">return_dict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">t</span><span class="o">.</span><span class="n">Union</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Dict</span><span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">Hashable</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="n">t</span><span class="o">.</span><span class="n">Tuple</span><span class="p">[</span><span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">...</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Return the free energies of all states in the groups.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        return_dict</span>
+<span class="sd">            Whether to return a dictionary of free energies with the states as keys.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        t.Union[t.Dict[t.Hashable, float], jnp.ndarray]</span>
+<span class="sd">            The reduced free energies of the states. If ``return_dict`` is ``True``,</span>
+<span class="sd">            the return value is a dictionary of free energies with the states as keys.</span>
+<span class="sd">            Otherwise, it is an array of free energies.</span>
+
 <span class="sd">        Examples</span>
 <span class="sd">        --------</span>
 <span class="sd">        &gt;&gt;&gt; import sparsembar as smbar</span>
@@ -287,9 +291,15 @@
 <span class="sd">        ...     for ids, matrix in zip(state_id_lists, potentials)</span>
 <span class="sd">        ... )</span>
 <span class="sd">        &gt;&gt;&gt; estimator.get_free_energies()</span>
-<span class="sd">        Array([...], ...dtype=float64)</span>
+<span class="sd">        (Array([...], ...dtype=float64), Array([...], ...dtype=float64))</span>
+<span class="sd">        &gt;&gt;&gt; estimator.get_free_energies(return_dict=True)</span>
+<span class="sd">        {(0, 1): 0.0, (1, 2): ..., (2, 3): ..., (2, 2): ..., (1, 1): ...}</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_free_energies</span></div>
+        <span class="k">if</span> <span class="n">return_dict</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_all_states</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_free_energies</span><span class="o">.</span><span class="n">tolist</span><span class="p">()))</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span>
+            <span class="n">jnp</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_free_energies</span><span class="p">,</span> <span class="n">indices</span><span class="p">)</span> <span class="k">for</span> <span class="n">indices</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state_indices</span>
+        <span class="p">)</span></div>
 </div>
 
 </pre></div>

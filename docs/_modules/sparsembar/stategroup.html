@@ -244,6 +244,27 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;The matrix of reduced potentials.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_potentials</span>
 
+<div class="viewcode-block" id="StateGroup.get_sample_sizes">
+<a class="viewcode-back" href="../../api/StateGroup.html#sparsembar.StateGroup.get_sample_sizes">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_sample_sizes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">return_dict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the number of samples drawn from each state in the group.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+<span class="sd">        return_dict</span>
+<span class="sd">            Whether to return a dictionary of sample sizes with the states as keys.</span>
+
+<span class="sd">        Returns</span>
+<span class="sd">        -------</span>
+<span class="sd">        jnp.ndarray</span>
+<span class="sd">            The number of samples drawn from each state in the group.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">return_dict</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_states</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sample_sizes</span><span class="o">.</span><span class="n">tolist</span><span class="p">()))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sample_sizes</span></div>
+
+
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">sample_sizes</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;The number of samples drawn from each state in the group.&quot;&quot;&quot;</span>
@@ -272,24 +293,20 @@
 <span class="sd">        Examples</span>
 <span class="sd">        --------</span>
 <span class="sd">        &gt;&gt;&gt; import sparsembar as smbar</span>
-<span class="sd">        &gt;&gt;&gt; from pymbar import MBAR</span>
 <span class="sd">        &gt;&gt;&gt; from numpy import allclose</span>
-<span class="sd">        &gt;&gt;&gt; model = smbar.MultiGaussian([0, 1, 2], [1, 2, 3], seed=1)</span>
+<span class="sd">        &gt;&gt;&gt; model = smbar.MultiGaussian([0, 1, 2], [1, 2, 3], seed=123)</span>
 <span class="sd">        &gt;&gt;&gt; samples = model.draw_samples(100)</span>
 <span class="sd">        &gt;&gt;&gt; potentials = model.compute_reduced_potentials(samples)</span>
 <span class="sd">        &gt;&gt;&gt; state_group = smbar.StateGroup([0, 1, 2], potentials, method=&quot;Newton-CG&quot;)</span>
 <span class="sd">        &gt;&gt;&gt; free_energies = state_group.get_free_energies()</span>
 <span class="sd">        &gt;&gt;&gt; free_energies</span>
 <span class="sd">        Array([...], dtype=float64)</span>
-<span class="sd">        &gt;&gt;&gt; mbar = MBAR(state_group.potentials, state_group.sample_sizes)</span>
-<span class="sd">        &gt;&gt;&gt; result = mbar.compute_free_energy_differences()</span>
-<span class="sd">        &gt;&gt;&gt; assert allclose(free_energies, result[&quot;Delta_f&quot;][0, :])</span>
+<span class="sd">        &gt;&gt;&gt; state_group.get_free_energies(return_dict=True)</span>
+<span class="sd">        {0: 0.0, 1: ..., 2: ...}</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="p">(</span>
-            <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_states</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_free_energies</span><span class="p">))</span>
-            <span class="k">if</span> <span class="n">return_dict</span>
-            <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_free_energies</span>
-        <span class="p">)</span></div>
+        <span class="k">if</span> <span class="n">return_dict</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_states</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_free_energies</span><span class="o">.</span><span class="n">tolist</span><span class="p">()))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_free_energies</span></div>
 </div>
 
 </pre></div>

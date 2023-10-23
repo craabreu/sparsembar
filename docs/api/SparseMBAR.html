@@ -117,8 +117,22 @@ precision.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="sparsembar.SparseMBAR.get_free_energies">
-<span class="sig-name descname"><span class="pre">get_free_energies</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sparsembar/sparsembar.html#SparseMBAR.get_free_energies"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sparsembar.SparseMBAR.get_free_energies" title="Link to this definition">¶</a></dt>
-<dd><p class="rubric">Examples</p>
+<span class="sig-name descname"><span class="pre">get_free_energies</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">return_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/sparsembar/sparsembar.html#SparseMBAR.get_free_energies"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#sparsembar.SparseMBAR.get_free_energies" title="Link to this definition">¶</a></dt>
+<dd><p>Return the free energies of all states in the groups.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>return_dict</strong> (<em>bool</em>) – Whether to return a dictionary of free energies with the states as keys.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The reduced free energies of the states. If <code class="docutils literal notranslate"><span class="pre">return_dict</span></code> is <code class="docutils literal notranslate"><span class="pre">True</span></code>,
+the return value is a dictionary of free energies with the states as keys.
+Otherwise, it is an array of free energies.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>t.Union[t.Dict[t.Hashable, float], jnp.ndarray]</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">sparsembar</span> <span class="k">as</span> <span class="nn">smbar</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">mean_lists</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">sigma_lists</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
@@ -150,14 +164,11 @@ precision.</p></li>
 <span class="gp">... </span>    <span class="k">for</span> <span class="n">ids</span><span class="p">,</span> <span class="n">matrix</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">state_id_lists</span><span class="p">,</span> <span class="n">potentials</span><span class="p">)</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">estimator</span><span class="o">.</span><span class="n">get_free_energies</span><span class="p">()</span>
-<span class="go">Array([...], ...dtype=float64)</span>
+<span class="go">(Array([...], ...dtype=float64), Array([...], ...dtype=float64))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">estimator</span><span class="o">.</span><span class="n">get_free_energies</span><span class="p">(</span><span class="n">return_dict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">{(0, 1): 0.0, (1, 2): ..., (2, 3): ..., (2, 2): ..., (1, 1): ...}</span>
 </pre></div>
 </div>
-<dl class="field-list simple">
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><em>Array</em></p>
-</dd>
-</dl>
 </dd></dl>
 
 </dd></dl>
