@@ -233,7 +233,6 @@ class StateGroup:
         Examples
         --------
         >>> import sparsembar as smbar
-        >>> from pymbar import MBAR
         >>> from numpy import allclose
         >>> model = smbar.MultiGaussian([0, 1, 2], [1, 2, 3], seed=123)
         >>> samples = model.draw_samples(100)
@@ -244,9 +243,6 @@ class StateGroup:
         Array([...], dtype=float64)
         >>> state_group.get_free_energies(return_dict=True)
         {0: 0.0, 1: ..., 2: ...}
-        >>> mbar = MBAR(state_group.potentials, state_group.sample_sizes)
-        >>> result = mbar.compute_free_energy_differences()
-        >>> assert allclose(free_energies, result["Delta_f"][0, :])
         """
         if return_dict:
             return dict(zip(self._states, self._free_energies.tolist()))

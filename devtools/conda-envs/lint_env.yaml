@@ -5,8 +5,9 @@ dependencies:
     # Base depends
   - python
   - pip
+  - scipy
   - jax
-  - pymbar==4.0.2
+
 
     # Linting
   - flake8
